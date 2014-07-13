@@ -9,7 +9,6 @@
 #include <cstrike>
 #include <clientprefs>
 #include <smlib>
-#include "include/smart-player-reports.inc"
 
 
 
@@ -41,6 +40,7 @@ new Handle:g_hMaxSavedReports = INVALID_HANDLE;
 new Handle:g_hReportsPerMap = INVALID_HANDLE;
 new Handle:g_hVersion = INVALID_HANDLE;
 new Handle:g_hWeightToDemo = INVALID_HANDLE;
+new Handle:g_hWeightSourcePlugin = INVALID_HANDLE;
 
 /** Database interactions **/
 new bool:g_dbConnected = false;
@@ -72,18 +72,21 @@ public any:ReportWeightHandler(client, victim) {
     if (!CanReport(client, victim))
         return 0;
 
-    if (!__SPR_UseExternalFunction) {
+    decl String:plugin_weight_name[128];
+    GetConVarString(g_hWeightSourcePlugin, plugin_weight_name, sizeof(plugin_weight_name));
+
+    if (StrEqual("", plugin_weight_name)) {
         return DefaultReportWeight(client, victim);
     } else {
-        new Handle:plugin = FindPluginByFile(__SPR_WeightPluginName);
+        new Handle:plugin = FindPluginByFile(plugin_weight_name);
         if (plugin == INVALID_HANDLE) {
-            LogError("Failed to find plugin %s", __SPR_WeightPluginName);
+            LogError("Failed to find plugin %s", plugin_weight_name);
             return DefaultReportWeight(client, victim);
         }
 
-        new Function:report_weight_function = GetFunctionByName(plugin, __SPR_WeightFunctionName);
+        new Function:report_weight_function = GetFunctionByName(plugin, "ReportWeight");
         if (report_weight_function == INVALID_FUNCTION) {
-            LogError("Failed to find function %s in %s", __SPR_WeightFunctionName, __SPR_WeightPluginName);
+            LogError("Failed to find function %s in %s", "ReportWeight", plugin_weight_name);
             return DefaultReportWeight(client, victim);
         }
 
@@ -127,6 +130,7 @@ public OnPluginStart() {
     g_hReportsPerMap = CreateConVar("sm_spr_reports_per_map", "1", "How frequently can players make reports?");
     g_hDatabaseName = CreateConVar("sm_spr_database_name", "smart_player_reports", "Database to use in configs/databases.cfg");
     g_hWeightToDemo = CreateConVar("sm_spr_weight_to_demo", "5", "Report weight required to trigger a demo. Use -1 to never demo, 0 to always demo, higher values to require more weight.");
+    g_hWeightSourcePlugin = CreateConVar("sm_spr_weight_source_plugin_filename", "", "Other plugin filename that provides a WeightFunction(client, victim) function. You must include the .smx extension. Use empty string for no external plugin.");
 
     /** Config file **/
     AutoExecConfig(true, "smart_player_reports", "sourcemod");
@@ -305,6 +309,10 @@ public Report(client, victim, reason_index) {
     new bool:log_to_file = GetConVarInt(g_hLogToFile) != 0;
     new Float:demo_length = GetConVarFloat(g_hDemoDuration);
     new any:weight = ReportWeightHandler(client, victim);
+
+    // Ignore negative weight reports
+    if (weight < 0)
+        return;
 
     decl String:reporter_name[64];
     decl String:reporter_steamid[64];

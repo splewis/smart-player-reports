@@ -1,5 +1,4 @@
 #include <sourcemod>
-#include "include/smart-player-reports.inc"
 
 public Plugin:myinfo = {
     name = "SPR example client plugin",
@@ -9,21 +8,17 @@ public Plugin:myinfo = {
     url = "https://github.com/splewis/smart-player-reports"
 };
 
-public OnLibraryAdded(const String:name[]) {
-    if (StrEqual(name, "smart-player-reports")) {
-        SPR_RegisterWeightFunction("ReportWeight");
-    }
-}
-
 public bool:IsAdmin(client) {
     return CheckCommandAccess(client, "sm_kick", ADMFLAG_KICK);
 }
 
 /**
  * Here's the important part.
- * All you need to do is add a function like this (return any, take 2 any parameters)
- * and call RegisterWeightFunction with the function name somewhere, probably in
- * the plugin startup code.
+ * All you need to do is add a function like this with the same name and signature.
+ * A 0-weight report will generally have no effect (though it IS reported)
+ * and negative-weight reports have no effect and are NOT reported.
+ * Users are fully unaware of the weight of their report
+ * You can do anything you want inside this function!
  */
 public any:ReportWeight(client, victim) {
     new weight = 1;
