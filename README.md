@@ -22,20 +22,20 @@ Stable releases are in the [GitHub Releases](https://github.com/splewis/smart-pl
 
 ### Using the MySQL database
 
-mysql>
-		describe player_reports;
-			+------------------+--------------+------+-----+-------------------+----------------+
-			| Field            | Type         | Null | Key | Default           | Extra          |
-			+------------------+--------------+------+-----+-------------------+----------------+
-			| id               | int(11)      | NO   | PRI | NULL              | auto_increment |
-			| timestamp        | timestamp    | NO   |     | CURRENT_TIMESTAMP |                |
-			| reporter_name    | varchar(64)  | NO   |     |                   |                |
-			| reporter_steamid | varchar(64)  | NO   |     |                   |                |
-			| reported_name    | varchar(64)  | NO   |     |                   |                |
-			| reported_steamid | varchar(64)  | NO   |     |                   |                |
-			| weight           | int(11)      | NO   |     | 0                 |                |
-			| description      | varchar(256) | NO   |     |                   |                |
-			| server           | varchar(64)  | NO   |     |                   |                |
-			| demo             | varchar(128) | NO   |     |                   |                |
-			+------------------+--------------+------+-----+-------------------+----------------+
+		mysql> describe player_reports;
+
+		+------------------+--------------+------+-----+-------------------+----------------+
+		| Field            | Type         | Null | Key | Default           | Extra          |
+		+------------------+--------------+------+-----+-------------------+----------------+
+		| id               | int(11)      | NO   | PRI | NULL              | auto_increment |
+		| timestamp        | timestamp    | NO   |     | CURRENT_TIMESTAMP |                |
+		| reporter_name    | varchar(64)  | NO   |     |                   |                |
+		| reporter_steamid | varchar(64)  | NO   |     |                   |                |
+		| reported_name    | varchar(64)  | NO   |     |                   |                |
+		| reported_steamid | varchar(64)  | NO   |     |                   |                |
+		| weight           | int(11)      | NO   |     | 0                 |                |
+		| description      | varchar(256) | NO   |     |                   |                |
+		| server           | varchar(64)  | NO   |     |                   |                |
+		| demo             | varchar(128) | NO   |     |                   |                |
+		+------------------+--------------+------+-----+-------------------+----------------+
 
