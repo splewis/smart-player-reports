@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION "0.1.0"
+#define PLUGIN_VERSION "1.0.0"
 #define SPR_LIBRARY_VERSION PLUGIN_VERSION
 
 #pragma semicolon 1
@@ -19,7 +19,7 @@
  ***********************/
 
 #define CHAT_PREFIX " \x04[SPR]\x01 "
-#define REPORTS_TABLE_NAME "player_reports"
+#define REPORTS_TABLE_NAME "smart_player_reports"
 
  new String:g_ReportStrings[][] = {
     "Abusive voice chat",
@@ -124,16 +124,16 @@ public OnPluginStart() {
     /** ConVars **/
     g_hDemoDuration = CreateConVar("sm_spr_demo_duration", "240.0", "Max length of a demo. The demo will be shorter if the map ends before this time runs out.", _, true, 30.0);
     g_hLogToAdmins = CreateConVar("sm_spr_log_to_admins", "1", "Should info about reports/demos be printed to admins on the server?");
-    g_hLogToDatabase = CreateConVar("sm_spr_log_to_database", "1", "Should info about reports/demos be put into a MySQL database? Add a section for smart_player_reports to databases.cfg if needed. Data goes in the player_reports table.");
+    g_hLogToDatabase = CreateConVar("sm_spr_log_to_database", "1", "Should info about reports/demos be put into a MySQL database? Add a section for smart_player_reports to databases.cfg if needed. Data goes in the smart_player_reports table.");
     g_hLogToFile = CreateConVar("sm_spr_log_to_file", "1", "Should info about reports/demos be put into a sourcemod/logs file?");
-    g_hMaxSavedReports = CreateConVar("sm_max_reports_in_plugin", "1000", "Maximum number of (in-plugin) report weight values saved. The plugin tracks the report weight for each client reported, but must periodically clear the data - this number if the max reports being saved on the plugin. This has no effect on the logs or database results.");
+    g_hMaxSavedReports = CreateConVar("sm_spr_max_reports_in_plugin", "1000", "Maximum number of (in-plugin) report weight values saved. The plugin tracks the report weight for each client reported, but must periodically clear the data - this number if the max reports being saved on the plugin. This has no effect on the logs or database results.");
     g_hReportsPerMap = CreateConVar("sm_spr_reports_per_map", "1", "How frequently can players make reports?");
     g_hDatabaseName = CreateConVar("sm_spr_database_name", "smart_player_reports", "Database to use in configs/databases.cfg");
     g_hWeightToDemo = CreateConVar("sm_spr_weight_to_demo", "5", "Report weight required to trigger a demo. Use -1 to never demo, 0 to always demo, higher values to require more weight.");
     g_hWeightSourcePlugin = CreateConVar("sm_spr_weight_source_plugin_filename", "", "Other plugin filename that provides a WeightFunction(client, victim) function. You must include the .smx extension. Use empty string for no external plugin.");
 
     /** Config file **/
-    AutoExecConfig(true, "smart_player_reports", "sourcemod");
+    AutoExecConfig(true, "smart-player-reports", "sourcemod");
 
     /** Version cvar **/
     g_hVersion = CreateConVar("sm_smart_player_reports_version", PLUGIN_VERSION, "Current smart player reports version", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY|FCVAR_DONTRECORD);
@@ -272,12 +272,6 @@ public ReportReasonMenu(client, victim) {
     }
     report_count++;
     SetTrieValue(g_ReportCount, reporter_steamid, report_count);
-
-    if (report_count > GetConVarInt(g_hReportsPerMap)) {
-        PluginMessage(client, "Sorry, you have used all your reports for this map.");
-        return;
-    }
-
     g_Reporting[client] = victim;
 
     new Handle:menu = CreateMenu(ReportReasonMenuHandler);
@@ -324,6 +318,13 @@ public Report(client, victim, reason_index) {
 
     GetClientName(client, reporter_name, sizeof(reporter_name));
     GetClientAuthString(client, reporter_steamid, sizeof(reporter_steamid));
+
+    // Ignore someone that has used up their reports
+    new report_count = 0;
+    GetTrieValue(g_ReportCount, reporter_steamid, report_count);
+    if (report_count > GetConVarInt(g_hReportsPerMap))
+        return;
+
     GetClientName(victim, reported_name, sizeof(reported_name));
     GetClientAuthString(victim, reported_steamid, sizeof(reported_steamid));
     Server_GetIPString(ip, sizeof(ip));
@@ -343,8 +344,8 @@ public Report(client, victim, reason_index) {
 
     if (log_to_file) {
         new timeStamp = GetTime();
-        decl String:formattedTime[64];
-        FormatTime(formattedTime, sizeof(formattedTime), "%F", timeStamp);
+        decl String:formattedTime[128];
+        FormatTime(formattedTime, sizeof(formattedTime), "%Y-%m-%d", timeStamp);
 
         decl String:logFile[PLATFORM_MAX_PATH];
         BuildPath(Path_SM, logFile, sizeof(logFile), "logs/smart_player_reports_%s.log", formattedTime);
@@ -421,7 +422,8 @@ public DB_Connect() {
 }
 
 public CreateTables() {
-    Format(g_sqlBuffer, sizeof(g_sqlBuffer), "CREATE TABLE IF NOT EXISTS %s (id int NOT NULL AUTO_INCREMENT, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,reporter_name varchar(64) NOT NULL DEFAULT '', reporter_steamid varchar(64) NOT NULL DEFAULT '', reported_name varchar(64) NOT NULL DEFAULT '', reported_steamid varchar(64) NOT NULL DEFAULT '', weight int NOT null DEFAULT 0, description varchar(256) NOT NULL DEFAULT '', server varchar(64) NOT NULL DEFAULT '', demo varchar(128) NOT NULL DEFAULT '', PRIMARY KEY (id));", REPORTS_TABLE_NAME);
+    Format(g_sqlBuffer, sizeof(g_sqlBuffer), "CREATE TABLE IF NOT EXISTS %s (id int NOT NULL AUTO_INCREMENT, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,reporter_name varchar(64) NOT NULL DEFAULT '', reporter_steamid varchar(64) NOT NULL DEFAULT '', reported_name varchar(64) NOT NULL DEFAULT '', reported_steamid varchar(64) NOT NULL DEFAULT '', weight int NOT null DEFAULT 0, description varchar(256) NOT NULL DEFAULT '', server varchar(64) NOT NULL DEFAULT '', demo varchar(128) NOT NULL DEFAULT '', PRIMARY KEY (id));",
+           REPORTS_TABLE_NAME);
     SQL_FastQuery(db, g_sqlBuffer);
  }
 
