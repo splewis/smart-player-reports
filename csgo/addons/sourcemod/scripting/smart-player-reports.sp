@@ -337,7 +337,8 @@ public Report(client, victim, reason_index) {
     SetTrieValue(g_ReportedWeight, reported_steamid, current_weight);
 
     if (log_to_admin) {
-        PluginMessageToAdmins("%N reported \x03%L: \x01weight \x04%d", client, victim, weight);
+        PluginMessageToAdmins("%N reported \x03%L \x01for %s \x01(weight \x04%d\x01)",
+                              client, victim, g_ReportStrings[reason_index], weight);
     }
 
     if (log_to_file) {
@@ -347,8 +348,8 @@ public Report(client, victim, reason_index) {
 
         decl String:logFile[PLATFORM_MAX_PATH];
         BuildPath(Path_SM, logFile, sizeof(logFile), "logs/smart_player_reports_%s.log", formattedTime);
-
-        LogToFile(logFile "%N reported %N, weight: %d, reason: %s", client, victim, weight, g_ReportStrings[reason_index]);
+        LogToFile(logFile, "%N reported %N, weight: %d, reason: %s",
+                  client, victim, weight, g_ReportStrings[reason_index]);
     }
 
     if (!g_Recording && current_weight >= demo_weight && demo_weight >= 0) {
