@@ -347,6 +347,8 @@ public Report(client, victim, reason_index) {
 
         decl String:logFile[PLATFORM_MAX_PATH];
         BuildPath(Path_SM, logFile, sizeof(logFile), "logs/smart_player_reports_%s.log", formattedTime);
+
+        LogToFile(logFile "%N reported %N, weight: %d, reason: %s", client, victim, weight, g_ReportStrings[reason_index]);
     }
 
     if (!g_Recording && current_weight >= demo_weight && demo_weight >= 0) {
