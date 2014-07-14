@@ -105,26 +105,44 @@ This is intentional with my goal of keeping things simple.
 
 I'm aware things like plugin libraries, forwards, and natives exist.
 
+### GOTV demos
+
+You need to enable gotv to use the demo-recording feature. Adding the following to your ``server.cfg`` will work:
+
+    tv_enable 1
+    tv_delaymapchange 0
+    tv_delay 30
+    tv_deltacache 2
+    tv_dispatchmode 1
+    tv_maxclients 1
+    tv_maxrate 0
+    tv_overridemaster 0
+    tv_relayvoice 1
+    tv_snapshotrate 20
+    tv_timeout 60
+    tv_transmitall 1
+
+Of course, you can tweak the values.
 
 
 ### Using the MySQL database
 
-		mysql> describe player_reports;
+	mysql> describe player_reports;
 
-		+------------------+--------------+------+-----+-------------------+----------------+
-		| Field            | Type         | Null | Key | Default           | Extra          |
-		+------------------+--------------+------+-----+-------------------+----------------+
-		| id               | int(11)      | NO   | PRI | NULL              | auto_increment |
-		| timestamp        | timestamp    | NO   |     | CURRENT_TIMESTAMP |                |
-		| reporter_name    | varchar(64)  | NO   |     |                   |                |
-		| reporter_steamid | varchar(64)  | NO   |     |                   |                |
-		| reported_name    | varchar(64)  | NO   |     |                   |                |
-		| reported_steamid | varchar(64)  | NO   |     |                   |                |
-		| weight           | int(11)      | NO   |     | 0                 |                |
-		| description      | varchar(256) | NO   |     |                   |                |
-		| server           | varchar(64)  | NO   |     |                   |                |
-		| demo             | varchar(128) | NO   |     |                   |                |
-		+------------------+--------------+------+-----+-------------------+----------------+
+	+------------------+--------------+------+-----+-------------------+----------------+
+	| Field            | Type         | Null | Key | Default           | Extra          |
+	+------------------+--------------+------+-----+-------------------+----------------+
+	| id               | int(11)      | NO   | PRI | NULL              | auto_increment |
+	| timestamp        | timestamp    | NO   |     | CURRENT_TIMESTAMP |                |
+	| reporter_name    | varchar(64)  | NO   |     |                   |                |
+	| reporter_steamid | varchar(64)  | NO   |     |                   |                |
+	| reported_name    | varchar(64)  | NO   |     |                   |                |
+	| reported_steamid | varchar(64)  | NO   |     |                   |                |
+	| weight           | int(11)      | NO   |     | 0                 |                |
+	| description      | varchar(256) | NO   |     |                   |                |
+	| server           | varchar(64)  | NO   |     |                   |                |
+	| demo             | varchar(128) | NO   |     |                   |                |
+	+------------------+--------------+------+-----+-------------------+----------------+
 
 Currently there are no tools for actually using the reports in the database.
 If you have any ideas, let me know in the [Issues Section](https://github.com/splewis/smart-player-reports/issues).
