@@ -49,7 +49,7 @@ When the plugin starts up for the first time, it will create **cfg/sourcemod/sma
 - **sm_spr_log_to_file**: should reports be logged to a file (default 1)
 - **sm_spr_max_reports_in_plugin**: max reports to save within the plugin before clearing (default 1000)
 - **sm_spr_reports_per_map**: number of reports a player can use per map (default 1)
-- **sm_spr_weight_source_plugin_filename**: what external plugin is providing a ReportWeight function (default "")
+- **sm_spr_weight_source_plugin_filename**: what plugin, if any, is providing a ReportWeight function (default "")
 - **sm_spr_weight_to_demo**: how many report weight is needed to create a demo (default 10)
 
 
