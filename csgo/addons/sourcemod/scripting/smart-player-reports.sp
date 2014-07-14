@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION "1.0.0"
+#define PLUGIN_VERSION "beta"
 #define SPR_LIBRARY_VERSION PLUGIN_VERSION
 
 #pragma semicolon 1
@@ -360,11 +360,13 @@ public Report(client, victim, reason_index) {
         g_StopRecordingSignal = false;
 
         new timeStamp = GetTime();
-        decl String:formattedTime[64];
-        FormatTime(formattedTime, sizeof(formattedTime), "%F_%R", timeStamp);
+        decl String:formattedTime[128];
+        FormatTime(formattedTime, sizeof(formattedTime), "%F-%R", timeStamp);
+        LogMessage(formattedTime);
 
-        decl String:fileName[128];
+        decl String:fileName[PLATFORM_MAX_PATH];
         Format(fileName, sizeof(fileName), "report_%N_%s", victim, formattedTime);
+        LogMessage(fileName);
 
         ServerCommand("tv_record %s", fileName);
         CreateTimer(demo_length, Timer_StopDemo, _, TIMER_FLAG_NO_MAPCHANGE);
