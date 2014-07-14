@@ -380,7 +380,7 @@ public Report(client, victim, reason_index) {
             DB_Connect();
 
         if (g_dbConnected) {
-            Format(g_sqlBuffer, sizeof(g_sqlBuffer), "INSERT INTO %s (reporter_name,reporter_steamid,reported_name,reported_steamid,weight,server,description,demo) VALUES ('%s', '%s', '%s', '%s', %d, '%s', '%s');",
+            Format(g_sqlBuffer, sizeof(g_sqlBuffer), "INSERT INTO %s (reporter_name,reporter_steamid,reported_name,reported_steamid,weight,server,description,demo) VALUES ('%s', '%s', '%s', '%s', %d, '%s', '%s', '%s');",
                 REPORTS_TABLE_NAME, reporter_name,reporter_steamid,reported_name,reported_steamid,weight,server,g_ReportStrings[reason_index],demo);
             SQL_TQuery(db, SQLErrorCheckCallback, g_sqlBuffer);
         }
