@@ -1,14 +1,8 @@
 #define PLUGIN_VERSION "beta"
-#define SPR_LIBRARY_VERSION PLUGIN_VERSION
-
 #pragma semicolon 1
-
 #include <sourcemod>
-#include <sdkhooks>
-#include <sdktools>
-#include <cstrike>
-#include <clientprefs>
 #include <smlib>
+#include <curl>
 
 
 
@@ -19,28 +13,49 @@
  ***********************/
 
 #define CHAT_PREFIX " \x04[SPR]\x01 "
-#define REPORTS_TABLE_NAME "smart_player_reports"
+#define REPORTS_TABLE_NAME "spr_reports"
+#define PLAYERS_TABLE_NAME "spr_players"
 
- new String:g_ReportStrings[][] = {
+new String:g_ReportStrings[][] = {
     "Abusive voice chat",
     "Abusive text chat",
     "Hacking",
     "Griefing",
     "Breaking general server rules",
     "Other"
- };
+};
+
+new String:g_ReportFields[][] = {
+    "id INT NOT NULL AUTO_INCREMENT",
+    "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+    "reporter_steamid varchar(64) NOT NULL DEFAULT ''",
+    "victim_name varchar(64) NOT NULL DEFAULT ''",
+    "victim_steamid varchar(64) NOT NULL DEFAULT ''",
+    "weight Float NOT NULL DEFAULT 0.0",
+    "description varchar(256) NOT NULL DEFAULT ''",
+    "server varchar(64) NOT NULL DEFAULT ''",
+    "demo varchar(128) NOT NULL DEFAULT ''",
+    "PRIMARY KEY (id)"
+};
+
+new String:g_PlayerFields[][] = {
+    "steamid VARCHAR(64) NOT NULL DEFAULT '' PRIMARY KEY",
+    "name VARCHAR(64) NOT NULL DEFAULT ''",
+    "reputation FLOAT NOT NULL DEFAULT 10.0",
+    "cumulative_weight FLOAT NOT NULL DEFAULT 0.0"
+};
 
 /** ConVar handles **/
-new Handle:g_hDemoDuration = INVALID_HANDLE;
 new Handle:g_hDatabaseName = INVALID_HANDLE;
+new Handle:g_hDemoDuration = INVALID_HANDLE;
 new Handle:g_hLogToAdmins = INVALID_HANDLE;
-new Handle:g_hLogToDatabase = INVALID_HANDLE;
 new Handle:g_hLogToFile = INVALID_HANDLE;
-new Handle:g_hMaxSavedReports = INVALID_HANDLE;
-new Handle:g_hReportsPerMap = INVALID_HANDLE;
+new Handle:g_hReputationRecovery = INVALID_HANDLE;
 new Handle:g_hVersion = INVALID_HANDLE;
-new Handle:g_hWeightToDemo = INVALID_HANDLE;
+new Handle:g_hWeightDecay = INVALID_HANDLE;
 new Handle:g_hWeightSourcePlugin = INVALID_HANDLE;
+new Handle:g_hWeightToDemo = INVALID_HANDLE;
+new Handle:g_ReputationLossConstant = INVALID_HANDLE;
 
 /** Database interactions **/
 new bool:g_dbConnected = false;
@@ -48,14 +63,14 @@ new Handle:db = INVALID_HANDLE;
 new String:g_sqlBuffer[1024];
 
 /** Reporting logic **/
+new String:g_DemoName[PLATFORM_MAX_PATH];
 new bool:g_Recording = false;
 new bool:g_StopRecordingSignal = false;
 
-/** map(client -> report count) **/
-new Handle:g_ReportCount = INVALID_HANDLE;
-
-/** map(victim -> cumulative report weight) **/
-new Handle:g_ReportedWeight = INVALID_HANDLE;
+new String:g_steamid[MAXPLAYERS+1][64];
+new bool:g_FetchedData[MAXPLAYERS+1];
+new Float:g_Reputation[MAXPLAYERS+1];
+new Float:g_CumulativeWeight[MAXPLAYERS+1];
 
 /** Which victim the client is trying to report **/
 new any:g_Reporting[MAXPLAYERS+1] = 0;
@@ -90,7 +105,7 @@ public any:ReportWeightHandler(client, victim) {
             return DefaultReportWeight(client, victim);
         }
 
-        new any:result;
+        new Float:result;
         Call_StartFunction(plugin, report_weight_function);
         Call_PushCell(client);
         Call_PushCell(victim);
@@ -99,9 +114,10 @@ public any:ReportWeightHandler(client, victim) {
     }
 }
 
-public any:DefaultReportWeight(client, victim) {
-    return 1;
+public Float:DefaultReportWeight(client, victim) {
+    return 1.0;
 }
+
 
 
 /***********************
@@ -124,13 +140,13 @@ public OnPluginStart() {
     /** ConVars **/
     g_hDemoDuration = CreateConVar("sm_spr_demo_duration", "240.0", "Max length of a demo. The demo will be shorter if the map ends before this time runs out.", _, true, 30.0);
     g_hLogToAdmins = CreateConVar("sm_spr_log_to_admins", "1", "Should info about reports/demos be printed to admins on the server?");
-    g_hLogToDatabase = CreateConVar("sm_spr_log_to_database", "1", "Should info about reports/demos be put into a MySQL database? Add a section for smart_player_reports to databases.cfg if needed. Data goes in the smart_player_reports table.");
     g_hLogToFile = CreateConVar("sm_spr_log_to_file", "1", "Should info about reports/demos be put into a sourcemod/logs file?");
-    g_hMaxSavedReports = CreateConVar("sm_spr_max_reports_in_plugin", "1000", "Maximum number of (in-plugin) report weight values saved. The plugin tracks the report weight for each client reported, but must periodically clear the data - this number if the max reports being saved on the plugin. This has no effect on the logs or database results.");
-    g_hReportsPerMap = CreateConVar("sm_spr_reports_per_map", "1", "How frequently can players make reports?");
     g_hDatabaseName = CreateConVar("sm_spr_database_name", "smart_player_reports", "Database to use in configs/databases.cfg");
-    g_hWeightToDemo = CreateConVar("sm_spr_weight_to_demo", "5", "Report weight required to trigger a demo. Use -1 to never demo, 0 to always demo, higher values to require more weight.");
+    g_hWeightToDemo = CreateConVar("sm_spr_weight_to_demo", "10.0", "Report weight required to trigger a demo. Use a negative to never demo, 0.0 to always demo, higher values to require more weight.");
     g_hWeightSourcePlugin = CreateConVar("sm_spr_weight_source_plugin_filename", "", "Other plugin filename that provides a WeightFunction(client, victim) function. You must include the .smx extension. Use empty string for no external plugin.");
+    g_hReputationRecovery = CreateConVar("sm_spr_reputation_recovery_per_minute", "0.02", "Increase in player reputation per minute of playtime");
+    g_ReputationLossConstant = CreateConVar("sm_spr_reputation_loss_constant", "1.5", "Reputation loss = this constant / weight of report");
+    g_hWeightDecay = CreateConVar("sm_spr_weight_decay_per_minute", "0.01", "Decrease in player weight per minute of playtime");
 
     /** Config file **/
     AutoExecConfig(true, "smart-player-reports", "sourcemod");
@@ -148,22 +164,28 @@ public OnPluginStart() {
     /** Event Hooks **/
     HookEvent("round_poststart", Event_OnRoundPostStart);
 
-    g_ReportCount = CreateTrie();
-    g_ReportedWeight = CreateTrie();
+    CreateTimer(60.0, Timer_ReputationIncrease, _, TIMER_REPEAT);
 }
 
 public OnMapStart() {
     g_Recording = false;
     g_StopRecordingSignal = false;
-    if (!g_dbConnected && GetConVarInt(g_hLogToDatabase) != 0) {
+    if (!g_dbConnected) {
         DB_Connect();
     }
 }
 
-public OnMapEnd() {
-    ClearTrie(g_ReportCount);
-    if (GetTrieSize(g_ReportedWeight) >= GetConVarInt(g_hMaxSavedReports))
-        ClearTrie(g_ReportedWeight);
+public OnClientPostAdminCheck(client) {
+    if (IsClientInGame(client) && !IsFakeClient(client) && g_dbConnected) {
+        GetClientAuthString(client, g_steamid[client], 64);
+        DB_AddPlayer(client);
+    }
+}
+
+public OnClientDisconnect(client) {
+    if (db != INVALID_HANDLE)
+        DB_WritePlayerInfo(client);
+    g_FetchedData[client] = false;
 }
 
 public Event_OnRoundPostStart(Handle:event, const String:name[], bool:dontBroadcast) {
@@ -171,6 +193,29 @@ public Event_OnRoundPostStart(Handle:event, const String:name[], bool:dontBroadc
         g_Recording = false;
         g_StopRecordingSignal = false;
         ServerCommand("tv_stoprecord");
+
+        // TODO: send cURL to sourcebans!
+
+        // new Handle:curl = curl_easy_init();
+        // if (curl != INVALID_HANDLE) {
+        //     CURL_DEFAULT_OPT(curl);
+        //     new String:path[512];
+        //     BuildPath(Path_SM, path, sizeof(path), "%s/%s", TEST_FOLDER, TEST_6_UPLOAD_FILE);
+        //     test_7_form = curl_httppost();
+        //     curl_formadd(test_7_form, CURLFORM_COPYNAME, "userfile[]", CURLFORM_FILE, path, CURLFORM_END);
+        //     curl_formadd(test_7_form, CURLFORM_COPYNAME, "private_upload", CURLFORM_COPYCONTENTS, "0", CURLFORM_END);
+        //     curl_easy_setopt_handle(curl, CURLOPT_HTTPPOST, test_7_form);
+
+        //     test_7_file = CreateTestFile(TEST_7_OUT_FILE, "w");
+        //     curl_easy_setopt_handle(curl, CURLOPT_WRITEDATA, test_7_file);
+        //     curl_easy_setopt_string(curl, CURLOPT_URL, TEST_6_UPLOAD_URL);
+
+        //     ExecCURL(curl, current_test);
+        // } else {
+        //     PrintCreatecUrlError(current_test);
+        // }
+
+
     }
 }
 
@@ -182,13 +227,26 @@ public Event_OnRoundPostStart(Handle:event, const String:name[], bool:dontBroadc
  *                                *
  **********************************/
 
- public CanReport(client, victim) {
-    if (!IsValidClient(client) || !IsValidClient(victim) || IsFakeClient(client) || IsFakeClient(victim) || client == victim)
+public Action:Timer_ReputationIncrease(Handle:timer) {
+    new Float:dr = GetConVarFloat(g_hReputationRecovery);
+    new Float:dw = GetConVarFloat(g_hWeightDecay);
+    for (new i = 1; i <= MaxClients; i++) {
+        if (IsPlayer(i)) {
+            g_Reputation[i] += dr;
+            if (g_CumulativeWeight[i] > 0.0)
+                g_CumulativeWeight[i] -= dw;
+        }
+    }
+    return Plugin_Continue;
+}
+
+ public CanReport(reporter, victim) {
+    if (!IsValidClient(reporter) || !IsValidClient(victim) || IsFakeClient(reporter) || IsFakeClient(victim) || reporter == victim)
         return false;
     return true;
  }
 
- /**
+/**
  * Hook for player chat actions.
  */
 public Action:Command_Say(client, const String:command[], argc) {
@@ -259,19 +317,7 @@ public ReportReasonMenu(client, victim) {
     if (!CanReport(client, victim))
         return;
 
-    decl String:reporter_steamid[64];
-    decl String:reported_steamid[64];
-    GetClientAuthString(client, reporter_steamid, sizeof(reporter_steamid));
-    GetClientAuthString(victim, reported_steamid, sizeof(reported_steamid));
-
-    new report_count = 0;
-    if (!GetTrieValue(g_ReportCount, reporter_steamid, report_count)) {
-        report_count = 0;
-    }
-    report_count++;
-    SetTrieValue(g_ReportCount, reporter_steamid, report_count);
     g_Reporting[client] = victim;
-
     new Handle:menu = CreateMenu(ReportReasonMenuHandler);
     SetMenuTitle(menu, "Why are you reporting them?");
     for (new i = 0; i < sizeof(g_ReportStrings); i++)
@@ -289,56 +335,48 @@ public ReportReasonMenuHandler(Handle:menu, MenuAction:action, param1, param2) {
     }
 }
 
-public Report(client, victim, reason_index) {
-    if (!CanReport(client, victim))
+public Report(reporter, victim, reason_index) {
+    if (!CanReport(reporter, victim))
         return;
 
-    PluginMessage(client, "Thank you for your report.");
+    new Float:weight = ReportWeightHandler(reporter, victim);
+    if (weight <= 0.0)
+        return;
 
-    new any:demo_weight = GetConVarInt(g_hWeightToDemo);
-    new bool:log_to_db = GetConVarInt(g_hLogToDatabase) != 0;
+    g_Reputation[reporter] -= GetConVarFloat(g_ReputationLossConstant) * weight;
+    PluginMessage(reporter, "Thank you for your report.");
+
+    if (g_Reputation[reporter] < 0.0)
+        return;
+
+    new Float:demo_weight = GetConVarFloat(g_hWeightToDemo);
     new bool:log_to_admin = GetConVarInt(g_hLogToAdmins) != 0;
     new bool:log_to_file = GetConVarInt(g_hLogToFile) != 0;
     new Float:demo_length = GetConVarFloat(g_hDemoDuration);
-    new any:weight = ReportWeightHandler(client, victim);
 
-    // Ignore negative weight reports
-    if (weight < 0)
-        return;
+
 
     decl String:reporter_name[64];
-    decl String:reporter_steamid[64];
-    decl String:reported_name[64];
-    decl String:reported_steamid[64];
+    decl String:victim_name[64];
+    decl String:victim_name_sanitized[64];
     decl String:ip[40];
     decl String:server[64];
     decl String:demo[128];
 
-    GetClientName(client, reporter_name, sizeof(reporter_name));
-    GetClientAuthString(client, reporter_steamid, sizeof(reporter_steamid));
+    GetClientName(reporter, reporter_name, sizeof(reporter_name));
 
-    // Ignore someone that has used up their reports
-    new report_count = 0;
-    GetTrieValue(g_ReportCount, reporter_steamid, report_count);
-    if (report_count > GetConVarInt(g_hReportsPerMap))
-        return;
+    GetClientName(victim, victim_name, sizeof(victim_name));
+    SQL_EscapeString(db, victim_name, victim_name_sanitized, sizeof(victim_name));
 
-    GetClientName(victim, reported_name, sizeof(reported_name));
-    GetClientAuthString(victim, reported_steamid, sizeof(reported_steamid));
     Server_GetIPString(ip, sizeof(ip));
     Format(server, sizeof(server), "%s:%d", ip, Server_GetPort());
     Format(demo, sizeof(demo), "");
 
-    new any:current_weight = 0;
-    if (!GetTrieValue(g_ReportedWeight, reported_steamid, current_weight)){
-        current_weight = 0;
-    }
-    current_weight += weight;
-    SetTrieValue(g_ReportedWeight, reported_steamid, current_weight);
+    g_CumulativeWeight[victim] += weight;
 
     if (log_to_admin) {
-        PluginMessageToAdmins("%N reported \x03%L \x01for %s \x01(weight \x04%d\x01)",
-                              client, victim, g_ReportStrings[reason_index], weight);
+        PluginMessageToAdmins("%N reported \x03%L \x01for %s",
+                              reporter, victim, g_ReportStrings[reason_index]);
     }
 
     if (log_to_file) {
@@ -348,13 +386,12 @@ public Report(client, victim, reason_index) {
 
         decl String:logFile[PLATFORM_MAX_PATH];
         BuildPath(Path_SM, logFile, sizeof(logFile), "logs/smart_player_reports_%s.log", formattedTime);
-        LogToFile(logFile, "%N reported %N, weight: %d, reason: %s",
-                  client, victim, weight, g_ReportStrings[reason_index]);
+        LogToFile(logFile, "%L reported %L, weight: %f, reason: %s",
+                  reporter, victim, weight, g_ReportStrings[reason_index]);
     }
 
-    if (!g_Recording && current_weight >= demo_weight && demo_weight >= 0) {
-        current_weight -= weight;
-        SetTrieValue(g_ReportedWeight, reporter_steamid, current_weight);
+    if (!g_Recording && g_CumulativeWeight[victim] >= demo_weight && demo_weight >= 0.0) {
+        g_CumulativeWeight[victim] -= demo_weight;
 
         g_Recording = true;
         g_StopRecordingSignal = false;
@@ -362,31 +399,27 @@ public Report(client, victim, reason_index) {
         new timeStamp = GetTime();
         decl String:formattedTime[128];
         FormatTime(formattedTime, sizeof(formattedTime), "%F-%R", timeStamp);
-        LogMessage(formattedTime);
+        Format(g_DemoName, sizeof(g_DemoName), "report_%s_%s", g_steamid[victim], formattedTime);
 
-        decl String:fileName[PLATFORM_MAX_PATH];
-        Format(fileName, sizeof(fileName), "report_%N_%s", victim, formattedTime);
-        LogMessage(fileName);
-
-        ServerCommand("tv_record %s", fileName);
+        ServerCommand("tv_record %s", g_DemoName);
         CreateTimer(demo_length, Timer_StopDemo, _, TIMER_FLAG_NO_MAPCHANGE);
 
-        Format(demo, sizeof(demo), "%s.dem", fileName);
+        Format(demo, sizeof(demo), "%s.dem", g_DemoName);
 
         if (log_to_admin)
-            PluginMessageToAdmins("Now recording to \x04%s", fileName);
+            PluginMessageToAdmins("Now recording to \x04%s", g_DemoName);
     }
 
-    if (log_to_db) {
-        if (!g_dbConnected)
-            DB_Connect();
+    if (g_dbConnected) {
+        Format(g_sqlBuffer, sizeof(g_sqlBuffer), "INSERT INTO %s (reporter_steamid,victim_name,victim_steamid,weight,server,description,demo) VALUES ('%s', '%s', '%s', %f, '%s', '%s', '%s');",
+            REPORTS_TABLE_NAME,
+            g_steamid[reporter],
+            victim_name_sanitized, g_steamid[victim],
+            weight, server, g_ReportStrings[reason_index], demo);
 
-        if (g_dbConnected) {
-            Format(g_sqlBuffer, sizeof(g_sqlBuffer), "INSERT INTO %s (reporter_name,reporter_steamid,reported_name,reported_steamid,weight,server,description,demo) VALUES ('%s', '%s', '%s', '%s', %d, '%s', '%s', '%s');",
-                REPORTS_TABLE_NAME, reporter_name,reporter_steamid,reported_name,reported_steamid,weight,server,g_ReportStrings[reason_index],demo);
-            SQL_TQuery(db, SQLErrorCheckCallback, g_sqlBuffer);
-        }
+        SQL_TQuery(db, SQLErrorCheckCallback, g_sqlBuffer);
     }
+
 
 }
 
@@ -418,17 +451,64 @@ public DB_Connect() {
         LogError("Could not connect: %s", error);
     } else {
         SQL_LockDatabase(db);
-        CreateTables();
+        SQL_CreateTable(db, REPORTS_TABLE_NAME, g_ReportFields, sizeof(g_ReportFields));
+        SQL_CreateTable(db, PLAYERS_TABLE_NAME, g_PlayerFields, sizeof(g_PlayerFields));
         SQL_UnlockDatabase(db);
         g_dbConnected = true;
     }
 }
 
-public CreateTables() {
-    Format(g_sqlBuffer, sizeof(g_sqlBuffer), "CREATE TABLE IF NOT EXISTS %s (id int NOT NULL AUTO_INCREMENT, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,reporter_name varchar(64) NOT NULL DEFAULT '', reporter_steamid varchar(64) NOT NULL DEFAULT '', reported_name varchar(64) NOT NULL DEFAULT '', reported_steamid varchar(64) NOT NULL DEFAULT '', weight int NOT null DEFAULT 0, description varchar(256) NOT NULL DEFAULT '', server varchar(64) NOT NULL DEFAULT '', demo varchar(128) NOT NULL DEFAULT '', PRIMARY KEY (id));",
-           REPORTS_TABLE_NAME);
-    SQL_FastQuery(db, g_sqlBuffer);
- }
+public DB_AddPlayer(client) {
+    // player name
+    if (StrEqual(g_steamid[client], "")) {
+        LogError("No steamid for %N", client);
+        return;
+    }
+
+    decl String:name[64];
+    GetClientName(client, name, sizeof(name));
+    decl String:sanitized_name[64];
+    SQL_EscapeString(db, name, sanitized_name, sizeof(name));
+
+    // insert if not already in the table
+    Format(g_sqlBuffer, sizeof(g_sqlBuffer), "INSERT IGNORE INTO %s (steamid,name) VALUES ('%s', '%s');",
+           PLAYERS_TABLE_NAME, g_steamid[client], sanitized_name);
+    SQL_TQuery(db, SQLErrorCheckCallback, g_sqlBuffer);
+
+    // update the player name
+    Format(g_sqlBuffer, sizeof(g_sqlBuffer), "UPDATE %s SET name = '%s' WHERE steamid = '%s'",
+           PLAYERS_TABLE_NAME, sanitized_name, g_steamid[client]);
+    SQL_TQuery(db, SQLErrorCheckCallback, g_sqlBuffer);
+
+    Format(g_sqlBuffer, sizeof(g_sqlBuffer), "SELECT reputation, cumulative_weight FROM %s WHERE steamid = '%s';",
+           PLAYERS_TABLE_NAME, g_steamid[client]);
+    SQL_TQuery(db, T_FetchValues, g_sqlBuffer, client);
+}
+
+public T_FetchValues(Handle:owner, Handle:hndl, const String:error[], any:data) {
+    new client = data;
+    g_FetchedData[client] = false;
+    if (!IsPlayer(client))
+        return;
+
+    if (hndl == INVALID_HANDLE) {
+        LogError("Query failed: (error: %s)", error);
+    } else if (SQL_FetchRow(hndl)) {
+        g_Reputation[client] = SQL_FetchFloat(hndl, 0);
+        g_CumulativeWeight[client] = SQL_FetchFloat(hndl, 1);
+        g_FetchedData[client] = true;
+    } else {
+        LogError("Couldnt' get results for %N", client);
+    }
+}
+
+public DB_WritePlayerInfo(client) {
+    if (g_FetchedData[client]) {
+        Format(g_sqlBuffer, sizeof(g_sqlBuffer), "UPDATE %s SET cumulative_weight = %f, reputation = %f WHERE steamid = '%s';",
+               PLAYERS_TABLE_NAME, g_CumulativeWeight[client], g_Reputation[client], g_steamid[client]);
+        SQL_TQuery(db, SQLErrorCheckCallback, g_sqlBuffer);
+    }
+}
 
 /**
  * Generic SQL threaded query error callback.
@@ -457,6 +537,10 @@ public SQLErrorCheckCallback(Handle:owner, Handle:hndl, const String:error[], an
  */
 stock bool:IsValidClient(client) {
     return client > 0 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client);
+}
+
+stock bool:IsPlayer(client) {
+    return IsValidClient(client) && !IsFakeClient(client);
 }
 
 /**
@@ -532,4 +616,15 @@ stock PluginMessage(client, const String:msg[], any:...) {
 
     if (IsValidClient(client) && !IsFakeClient(client))
         PrintToChat(client, formattedMsg);
+}
+
+public SQL_CreateTable(Handle:db_connection, String:table_name[], String:fields[][], num_fields) {
+    Format(g_sqlBuffer, sizeof(g_sqlBuffer), "CREATE TABLE IF NOT EXISTS %s (", table_name);
+    for (new i = 0; i < num_fields; i++) {
+        StrCat(g_sqlBuffer, sizeof(g_sqlBuffer), fields[i]);
+        if (i != num_fields - 1)
+            StrCat(g_sqlBuffer, sizeof(g_sqlBuffer), ", ");
+    }
+    StrCat(g_sqlBuffer, sizeof(g_sqlBuffer), ");");
+    SQL_FastQuery(db_connection, g_sqlBuffer);
 }

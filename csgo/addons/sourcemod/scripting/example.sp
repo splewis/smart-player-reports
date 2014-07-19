@@ -20,12 +20,12 @@ public bool:IsAdmin(client) {
  * Users are fully unaware of the weight of their report
  * You can do anything you want inside this function!
  */
-public any:ReportWeight(client, victim) {
-    new weight = 1;
+public Float:ReportWeight(client, victim) {
+    new Float:weight = 1.0;
 
     // Count admins more heavily
     if (IsAdmin(client))
-        weight += 2;
+        weight += 2.0;
 
     // If no admin on the server, count reports more
     new bool:admin_on_server = false;
@@ -36,12 +36,12 @@ public any:ReportWeight(client, victim) {
         }
     }
     if (!admin_on_server)
-        weight += 2;
+        weight += 2.0;
 
     // You could even count reporters with a short steam ID more!
     decl String:steamid[64];
     if (GetClientAuthString(client, steamid, sizeof(steamid)) && strlen(steamid) < 10)
-        weight += 1;
+        weight += 1.0;
 
     return weight;
 }

@@ -64,7 +64,7 @@ The cumulative weights are what is being cleared by ``sm_spr_max_reports_in_plug
 
 ### For plugin developers
 
-An important cvar is ``sm_spr_weight_source_plugin_filename``. This defines a plugin name (with the .smx at the end!) that is supplying a function ``public any:ReportWeight(client, victim)``.
+An important cvar is ``sm_spr_weight_source_plugin_filename``. This defines a plugin name (with the .smx at the end!) that is supplying a function ``public Float:ReportWeight(client, victim)``.
 
 Example from [example.sp](https://github.com/splewis/smart-player-reports/blob/master/csgo/addons/sourcemod/scripting/example.sp)
 ```
@@ -75,12 +75,12 @@ Example from [example.sp](https://github.com/splewis/smart-player-reports/blob/m
  * Users are fully unaware of the weight of their report
  * You can do anything you want inside this function!
  */
-public any:ReportWeight(client, victim) {
-    new weight = 1;
+public Float:ReportWeight(client, victim) {
+    new weight = 1.0;
 
     // Count admins more heavily
     if (IsAdmin(client))
-        weight += 2;
+        weight += 2.0;
 
     // If no admin on the server, count reports more
     new bool:admin_on_server = false;
@@ -91,12 +91,12 @@ public any:ReportWeight(client, victim) {
         }
     }
     if (!admin_on_server)
-        weight += 2;
+        weight += 2.0;
 
     // You could even count reporters with a short steam ID more!
     decl String:steamid[64];
     if (GetClientAuthString(client, steamid, sizeof(steamid)) && strlen(steamid) < 10)
-        weight += 1;
+        weight += 1.0;
 
     return weight;
 }
@@ -129,22 +129,32 @@ Of course, you can tweak the values.
 
 ### Using the MySQL database
 
-	mysql> describe player_reports;
+    mysql> describe spr_reports;
+    +------------------+--------------+------+-----+-------------------+----------------+
+    | Field            | Type         | Null | Key | Default           | Extra          |
+    +------------------+--------------+------+-----+-------------------+----------------+
+    | id               | int(11)      | NO   | PRI | NULL              | auto_increment |
+    | timestamp        | timestamp    | NO   |     | CURRENT_TIMESTAMP |                |
+    | reporter_steamid | varchar(64)  | NO   |     |                   |                |
+    | victim_name      | varchar(64)  | NO   |     |                   |                |
+    | victim_steamid   | varchar(64)  | NO   |     |                   |                |
+    | weight           | float        | NO   |     | 0                 |                |
+    | description      | varchar(256) | NO   |     |                   |                |
+    | server           | varchar(64)  | NO   |     |                   |                |
+    | demo             | varchar(128) | NO   |     |                   |                |
+    +------------------+--------------+------+-----+-------------------+----------------+
 
-	+------------------+--------------+------+-----+-------------------+----------------+
-	| Field            | Type         | Null | Key | Default           | Extra          |
-	+------------------+--------------+------+-----+-------------------+----------------+
-	| id               | int(11)      | NO   | PRI | NULL              | auto_increment |
-	| timestamp        | timestamp    | NO   |     | CURRENT_TIMESTAMP |                |
-	| reporter_name    | varchar(64)  | NO   |     |                   |                |
-	| reporter_steamid | varchar(64)  | NO   |     |                   |                |
-	| reported_name    | varchar(64)  | NO   |     |                   |                |
-	| reported_steamid | varchar(64)  | NO   |     |                   |                |
-	| weight           | int(11)      | NO   |     | 0                 |                |
-	| description      | varchar(256) | NO   |     |                   |                |
-	| server           | varchar(64)  | NO   |     |                   |                |
-	| demo             | varchar(128) | NO   |     |                   |                |
-	+------------------+--------------+------+-----+-------------------+----------------+
+
+    mysql> describe spr_players;
+    +-------------------+-------------+------+-----+---------+-------+
+    | Field             | Type        | Null | Key | Default | Extra |
+    +-------------------+-------------+------+-----+---------+-------+
+    | steamid           | varchar(64) | NO   | PRI |         |       |
+    | name              | varchar(64) | NO   |     |         |       |
+    | reputation        | float       | NO   |     | 10      |       |
+    | cumulative_weight | float       | NO   |     | 0       |       |
+    +-------------------+-------------+------+-----+---------+-------+
+
 
 Currently there are no tools for actually using the reports in the database.
 If you have any ideas, let me know in the [Issues Section](https://github.com/splewis/smart-player-reports/issues).
