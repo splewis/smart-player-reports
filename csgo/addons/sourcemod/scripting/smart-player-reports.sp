@@ -1,8 +1,7 @@
-#define PLUGIN_VERSION "beta"
 #pragma semicolon 1
 #include <sourcemod>
 #include <smlib>
-#include <curl>
+#include "spr/common.sp"
 
 
 
@@ -12,17 +11,12 @@
  *                     *
  ***********************/
 
-#define CHAT_PREFIX " \x04[SPR]\x01 "
-#define REPORTS_TABLE_NAME "spr_reports"
-#define PLAYERS_TABLE_NAME "spr_players"
-
 new String:g_ReportStrings[][] = {
+    "Being better than me",
     "Abusive voice chat",
     "Abusive text chat",
     "Hacking",
-    "Griefing",
-    "Breaking general server rules",
-    "Other"
+    "Griefing"
 };
 
 new String:g_ReportFields[][] = {
@@ -57,6 +51,11 @@ new Handle:g_hWeightSourcePlugin = INVALID_HANDLE;
 new Handle:g_hWeightToDemo = INVALID_HANDLE;
 new Handle:g_ReputationLossConstant = INVALID_HANDLE;
 
+/** Forwards **/
+new Handle:g_hOnReportFiled = INVALID_HANDLE;
+new Handle:g_hOnDemoStart = INVALID_HANDLE;
+new Handle:g_hOnDemoStop = INVALID_HANDLE;
+
 /** Database interactions **/
 new bool:g_dbConnected = false;
 new Handle:db = INVALID_HANDLE;
@@ -64,6 +63,10 @@ new String:g_sqlBuffer[1024];
 
 /** Reporting logic **/
 new String:g_DemoName[PLATFORM_MAX_PATH];
+new any:g_DemoReasonIndex = -1;
+new any:g_DemoVictim = -1;
+new String:g_DemoVictimSteamID[64] = "";
+new String:g_DemoVictimName[64] = "";
 new bool:g_Recording = false;
 new bool:g_StopRecordingSignal = false;
 
@@ -127,7 +130,7 @@ public Float:DefaultReportWeight(client, victim) {
  ***********************/
 
 public Plugin:myinfo = {
-    name = "Smart player report (SPR)",
+    name = "[SPR] Smart player reports base plugin",
     author = "splewis",
     description = "Enhanced tools for player reports",
     version = PLUGIN_VERSION,
@@ -164,7 +167,13 @@ public OnPluginStart() {
     /** Event Hooks **/
     HookEvent("round_poststart", Event_OnRoundPostStart);
 
+    /** Forwards **/
+    g_hOnReportFiled = CreateGlobalForward("OnReportFiled", ET_Ignore);
+    g_hOnDemoStart = CreateGlobalForward("OnDemoStart", ET_Ignore);
+    g_hOnDemoStop = CreateGlobalForward("OnDemoStop", ET_Ignore);
+
     CreateTimer(60.0, Timer_ReputationIncrease, _, TIMER_REPEAT);
+
 }
 
 public OnMapStart() {
@@ -172,6 +181,19 @@ public OnMapStart() {
     g_StopRecordingSignal = false;
     if (!g_dbConnected) {
         DB_Connect();
+    }
+}
+
+public OnMapEnd() {
+    if (g_Recording) {
+        g_Recording = false;
+        Call_StartForward(g_hOnDemoStop);
+        Call_PushCell(g_DemoVictim);
+        Call_PushString(g_DemoVictimName);
+        Call_PushString(g_DemoVictimSteamID);
+        Call_PushString(g_ReportStrings[g_DemoReasonIndex]);
+        Call_PushString(g_DemoName);
+        Call_Finish();
     }
 }
 
@@ -193,29 +215,13 @@ public Event_OnRoundPostStart(Handle:event, const String:name[], bool:dontBroadc
         g_Recording = false;
         g_StopRecordingSignal = false;
         ServerCommand("tv_stoprecord");
-
-        // TODO: send cURL to sourcebans!
-
-        // new Handle:curl = curl_easy_init();
-        // if (curl != INVALID_HANDLE) {
-        //     CURL_DEFAULT_OPT(curl);
-        //     new String:path[512];
-        //     BuildPath(Path_SM, path, sizeof(path), "%s/%s", TEST_FOLDER, TEST_6_UPLOAD_FILE);
-        //     test_7_form = curl_httppost();
-        //     curl_formadd(test_7_form, CURLFORM_COPYNAME, "userfile[]", CURLFORM_FILE, path, CURLFORM_END);
-        //     curl_formadd(test_7_form, CURLFORM_COPYNAME, "private_upload", CURLFORM_COPYCONTENTS, "0", CURLFORM_END);
-        //     curl_easy_setopt_handle(curl, CURLOPT_HTTPPOST, test_7_form);
-
-        //     test_7_file = CreateTestFile(TEST_7_OUT_FILE, "w");
-        //     curl_easy_setopt_handle(curl, CURLOPT_WRITEDATA, test_7_file);
-        //     curl_easy_setopt_string(curl, CURLOPT_URL, TEST_6_UPLOAD_URL);
-
-        //     ExecCURL(curl, current_test);
-        // } else {
-        //     PrintCreatecUrlError(current_test);
-        // }
-
-
+        Call_StartForward(g_hOnDemoStop);
+        Call_PushCell(g_DemoVictim);
+        Call_PushString(g_DemoVictimName);
+        Call_PushString(g_DemoVictimSteamID);
+        Call_PushString(g_ReportStrings[g_DemoReasonIndex]);
+        Call_PushString(g_DemoName);
+        Call_Finish();
     }
 }
 
@@ -256,8 +262,7 @@ public Action:Command_Say(client, const String:command[], argc) {
 
     StripQuotes(text);
 
-    // TODO(splewis): get .report <name> to work!
-
+    // TODO: get .report <name> to work!
     new String:reportChatCommands[][] = { ".report", "!report" };
     for (new i = 0; i < sizeof(reportChatCommands); i++) {
         if (strcmp(text[0], reportChatCommands[i], false) == 0) {
@@ -329,23 +334,30 @@ public ReportReasonMenuHandler(Handle:menu, MenuAction:action, param1, param2) {
     if (action == MenuAction_Select) {
         new client = param1;
         new reason_index = GetMenuInt(menu, param2);
-        Report(client, g_Reporting[client], reason_index);
+        if (reason_index != 0)
+            Report(client, g_Reporting[client], reason_index);
     } else if (action == MenuAction_End) {
         CloseHandle(menu);
     }
 }
 
 public Report(reporter, victim, reason_index) {
+    PluginMessage(reporter, "Thank you for your report.");
     if (!CanReport(reporter, victim))
         return;
 
     new Float:weight = ReportWeightHandler(reporter, victim);
-    if (weight <= 0.0)
+    if (weight < 0.0)
         return;
 
-    g_Reputation[reporter] -= GetConVarFloat(g_ReputationLossConstant) * weight;
-    PluginMessage(reporter, "Thank you for your report.");
+    Call_StartForward(g_hOnReportFiled);
+    Call_PushCell(reporter);
+    Call_PushCell(victim);
+    Call_PushFloat(weight);
+    Call_PushString(g_ReportStrings[reason_index]);
+    Call_Finish();
 
+    g_Reputation[reporter] -= GetConVarFloat(g_ReputationLossConstant) * weight;
     if (g_Reputation[reporter] < 0.0)
         return;
 
@@ -354,23 +366,20 @@ public Report(reporter, victim, reason_index) {
     new bool:log_to_file = GetConVarInt(g_hLogToFile) != 0;
     new Float:demo_length = GetConVarFloat(g_hDemoDuration);
 
-
-
     decl String:reporter_name[64];
     decl String:victim_name[64];
     decl String:victim_name_sanitized[64];
     decl String:ip[40];
     decl String:server[64];
-    decl String:demo[128];
+    decl String:hostname[128];
 
     GetClientName(reporter, reporter_name, sizeof(reporter_name));
-
     GetClientName(victim, victim_name, sizeof(victim_name));
     SQL_EscapeString(db, victim_name, victim_name_sanitized, sizeof(victim_name));
 
     Server_GetIPString(ip, sizeof(ip));
     Format(server, sizeof(server), "%s:%d", ip, Server_GetPort());
-    Format(demo, sizeof(demo), "");
+    Server_GetHostName(hostname, sizeof(hostname));
 
     g_CumulativeWeight[victim] += weight;
 
@@ -379,13 +388,15 @@ public Report(reporter, victim, reason_index) {
                               reporter, victim, g_ReportStrings[reason_index]);
     }
 
-    if (log_to_file) {
-        new timeStamp = GetTime();
-        decl String:formattedTime[128];
-        FormatTime(formattedTime, sizeof(formattedTime), "%Y-%m-%d", timeStamp);
 
-        decl String:logFile[PLATFORM_MAX_PATH];
-        BuildPath(Path_SM, logFile, sizeof(logFile), "logs/smart_player_reports_%s.log", formattedTime);
+    new timeStamp = GetTime();
+    decl String:formattedTime[128];
+    FormatTime(formattedTime, sizeof(formattedTime), "%Y-%m-%d_%H:%M", timeStamp);
+
+
+    decl String:logFile[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, logFile, sizeof(logFile), "logs/smart_player_reports_%s.log", formattedTime);
+    if (log_to_file) {
         LogToFile(logFile, "%L reported %L, weight: %f, reason: %s",
                   reporter, victim, weight, g_ReportStrings[reason_index]);
     }
@@ -396,31 +407,44 @@ public Report(reporter, victim, reason_index) {
         g_Recording = true;
         g_StopRecordingSignal = false;
 
-        new timeStamp = GetTime();
-        decl String:formattedTime[128];
-        FormatTime(formattedTime, sizeof(formattedTime), "%F-%R", timeStamp);
-        Format(g_DemoName, sizeof(g_DemoName), "report_%s_%s", g_steamid[victim], formattedTime);
+        decl String:steamid_no_colons[64];
+        strcopy(steamid_no_colons, 64, g_steamid[victim]);
+        steamid_no_colons[7] = '-';
+        steamid_no_colons[9] = '-';
 
-        ServerCommand("tv_record %s", g_DemoName);
+        // format for tv_record command
+        Format(g_DemoName, sizeof(g_DemoName), "report_%s_%s", steamid_no_colons, formattedTime);
+        ServerCommand("tv_record \"%s\"", g_DemoName);
         CreateTimer(demo_length, Timer_StopDemo, _, TIMER_FLAG_NO_MAPCHANGE);
 
-        Format(demo, sizeof(demo), "%s.dem", g_DemoName);
-
+        // reformat with .dem extension for storage
+        Format(g_DemoName, sizeof(g_DemoName), "report_%s_%s.dem", steamid_no_colons, formattedTime);
         if (log_to_admin)
             PluginMessageToAdmins("Now recording to \x04%s", g_DemoName);
+        if (log_to_file)
+            LogToFile(logFile, "Now recording to %s", g_DemoName);
+
+        g_DemoVictim = victim;
+        g_DemoReasonIndex = reason_index;
+        Call_StartForward(g_hOnDemoStart);
+        Call_PushCell(victim);
+        Call_PushString(g_ReportStrings[reason_index]);
+        Call_PushString(g_DemoName);
+        Call_Finish();
+
+    } else {
+        Format(g_DemoName, sizeof(g_DemoName), "");
     }
 
     if (g_dbConnected) {
-        Format(g_sqlBuffer, sizeof(g_sqlBuffer), "INSERT INTO %s (reporter_steamid,victim_name,victim_steamid,weight,server,description,demo) VALUES ('%s', '%s', '%s', %f, '%s', '%s', '%s');",
+        Format(g_sqlBuffer, sizeof(g_sqlBuffer), "INSERT IGNORE INTO %s (reporter_steamid,victim_name,victim_steamid,weight,server,description,demo) VALUES ('%s', '%s', '%s', %f, '%s', '%s', '%s');",
             REPORTS_TABLE_NAME,
             g_steamid[reporter],
             victim_name_sanitized, g_steamid[victim],
-            weight, server, g_ReportStrings[reason_index], demo);
+            weight, server, g_ReportStrings[reason_index], g_DemoName);
 
         SQL_TQuery(db, SQLErrorCheckCallback, g_sqlBuffer);
     }
-
-
 }
 
 public Action:Timer_StopDemo(Handle:timer) {

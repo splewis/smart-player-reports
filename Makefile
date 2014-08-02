@@ -5,7 +5,8 @@ FLAGS = "-O2 -t4"
 build: clean
 	mkdir -p csgo/addons/sourcemod/plugins
 	$(SMC) csgo/addons/sourcemod/scripting/smart-player-reports.sp ${FLAGS} -o=csgo/addons/sourcemod/plugins/smart-player-reports
-	$(SMC) csgo/addons/sourcemod/scripting/example.sp ${FLAGS} -o=csgo/addons/sourcemod/plugins/example
+	$(SMC) csgo/addons/sourcemod/scripting/spr_example.sp ${FLAGS} -o=csgo/addons/sourcemod/plugins/spr_example
+	$(SMC) csgo/addons/sourcemod/scripting/spr_steammessager.sp ${FLAGS} -o=csgo/addons/sourcemod/plugins/spr_steammessager
 
 clean:
 	rm -rf *.smx *.zip csgo/addons/sourcemod/configs csgo/addons/sourcemod/plugins

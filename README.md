@@ -1,7 +1,7 @@
 smart-player-reports
 =======================================
 
-**This is currently un-released, unstable, BETA software! It may change drastically in the future!**
+**This is currently un-released, unstable, BETA software! Don't try to use it just yet.**
 
 This is a sourcemod plugin for dealing with abusive players. It's name has "smart" in it because it tries to help admins deal with these reports by:
 - **Storing a 'weight' to a report** (by default all reports are weight 1 - but you can implement your own function to compute weights)
@@ -38,6 +38,9 @@ Stable releases are in the [GitHub Releases](https://github.com/splewis/smart-pl
 
 
 ### Installation
+
+**Only Sourcemod 1.6 is supported.**
+
 Unpack the smart-player-reports.zip file and copy the plugin binary **smart-player-reports.smx** to your plugins folder.
 When the plugin starts up for the first time, it will create **cfg/sourcemod/smart-player-reports.cfg**, which you will most likely want to tweak.
 
@@ -67,6 +70,7 @@ The cumulative weights are what is being cleared by ``sm_spr_max_reports_in_plug
 An important cvar is ``sm_spr_weight_source_plugin_filename``. This defines a plugin name (with the .smx at the end!) that is supplying a function ``public Float:ReportWeight(client, victim)``.
 
 Example from [example.sp](https://github.com/splewis/smart-player-reports/blob/master/csgo/addons/sourcemod/scripting/example.sp)
+
 ```
 /**
  * All you need to do is add a function like this with the same name and signature.
@@ -76,7 +80,7 @@ Example from [example.sp](https://github.com/splewis/smart-player-reports/blob/m
  * You can do anything you want inside this function!
  */
 public Float:ReportWeight(client, victim) {
-    new weight = 1.0;
+    new Float:weight = 1.0;
 
     // Count admins more heavily
     if (IsAdmin(client))
@@ -102,7 +106,7 @@ public Float:ReportWeight(client, victim) {
 }
 ```
 
-Note that the **function name must be** ``ReportWeight`` and there is **no include file**.
+Note that the **function name must be** ``ReportWeight``.
 This is intentional with my goal of keeping things simple.
 
 I'm aware things like plugin libraries, forwards, and natives exist.

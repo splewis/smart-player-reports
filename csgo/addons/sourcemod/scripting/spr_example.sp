@@ -1,10 +1,11 @@
 #include <sourcemod>
+#include "include/spr.inc"
 
 public Plugin:myinfo = {
     name = "SPR example client plugin",
     author = "splewis",
     description = "SPR example plugin",
-    version = "1.0",
+    version = "1.0.0",
     url = "https://github.com/splewis/smart-player-reports"
 };
 
@@ -44,4 +45,16 @@ public Float:ReportWeight(client, victim) {
         weight += 1.0;
 
     return weight;
+}
+
+public OnReportFiled(reporter, victim, Float:weight, String:reason[]) {
+    PrintToServer("%N reporterd %N with weight %f", reporter, victim, weight);
+}
+
+public OnDemoStart(victim, victim_name, victim_steamid, String:reason[], String:demo_name[]) {
+    PrintToServer("Started recording %s", demo_name);
+}
+
+public OnDemoStop(victim, victim_name, victim_steamid, String:reason[], String:demo_name[]) {
+    PrintToServer("Finished recording %s", demo_name);
 }
