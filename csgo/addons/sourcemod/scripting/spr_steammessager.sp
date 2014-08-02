@@ -32,7 +32,7 @@ public OnMapEnd() {
     WriteConfig();
 }
 
-public OnDemoStart(victim, victim_name, victim_steamid, String:reason[], String:demo_name[]) {
+public OnDemoStart(victim, String:victim_name[], String:victim_steamid[], String:reason[], String:demo_name[]) {
     decl String:hostname[128];
     Server_GetHostName(hostname, sizeof(hostname));
     decl String:msg[1024];

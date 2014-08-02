@@ -168,9 +168,9 @@ public OnPluginStart() {
     HookEvent("round_poststart", Event_OnRoundPostStart);
 
     /** Forwards **/
-    g_hOnReportFiled = CreateGlobalForward("OnReportFiled", ET_Ignore);
-    g_hOnDemoStart = CreateGlobalForward("OnDemoStart", ET_Ignore);
-    g_hOnDemoStop = CreateGlobalForward("OnDemoStop", ET_Ignore);
+    g_hOnReportFiled = CreateGlobalForward("OnReportFiled", ET_Ignore, Param_Cell, Param_Cell, Param_Float, Param_String);
+    g_hOnDemoStart = CreateGlobalForward("OnDemoStart", ET_Ignore, Param_Cell, Param_String, Param_String, Param_String, Param_String);
+    g_hOnDemoStop = CreateGlobalForward("OnDemoStop", ET_Ignore, Param_Cell, Param_String, Param_String, Param_String, Param_String);
 
     CreateTimer(60.0, Timer_ReputationIncrease, _, TIMER_REPEAT);
 

@@ -9,7 +9,7 @@ build: clean
 	$(SMC) csgo/addons/sourcemod/scripting/spr_steammessager.sp ${FLAGS} -o=csgo/addons/sourcemod/plugins/spr_steammessager
 
 clean:
-	rm -rf *.smx *.zip csgo/addons/sourcemod/configs csgo/addons/sourcemod/plugins
+	rm -rf *.smx *.zip csgo/addons/sourcemod/plugins
 
 package: build
 	zip -r smart-player-reports csgo LICENSE README.md

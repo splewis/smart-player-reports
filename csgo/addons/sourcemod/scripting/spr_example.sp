@@ -51,10 +51,10 @@ public OnReportFiled(reporter, victim, Float:weight, String:reason[]) {
     PrintToServer("%N reporterd %N with weight %f", reporter, victim, weight);
 }
 
-public OnDemoStart(victim, victim_name, victim_steamid, String:reason[], String:demo_name[]) {
+public OnDemoStart(victim, String:victim_name[], String:victim_steamid[], String:reason[], String:demo_name[]) {
     PrintToServer("Started recording %s", demo_name);
 }
 
-public OnDemoStop(victim, victim_name, victim_steamid, String:reason[], String:demo_name[]) {
+public OnDemoStop(victim, String:victim_name[], String:victim_steamid[], String:reason[], String:demo_name[]) {
     PrintToServer("Finished recording %s", demo_name);
 }
