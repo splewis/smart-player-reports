@@ -50,15 +50,48 @@ public Message_CallBack(MessageBotResult:result, error) {
 }
 
 public Action:Command_SetBotUser(client, args) {
-    ThrowError("[Command_SetBotUser] Unimplemented");
+    if (GetCmdArgs() != 1)
+        ReplyToCommand(client, "Usage: sm_spr_steam_user <login account name>");
+
+    decl String:buffer[128];
+    GetCmdArg(1, buffer, sizeof(buffer));
+    KvSetString(kv, "bot_user", buffer)
 }
 
 public Action:Command_SetBotPassword(client, args) {
-    ThrowError("[Command_SetBotPassword] Unimplemented");
+    if (GetCmdArgs() != 1)
+        ReplyToCommand(client, "Usage: sm_spr_steam_user <login account name>");
+
+    decl String:buffer[128];
+    GetCmdArg(1, buffer, sizeof(buffer));
+    KvSetString(kv, "bot_password", buffer)
 }
 
 public Action:Command_AddRecipient(client, args) {
-    ThrowError("[Command_AddRecipient] Unimplemented");
+    decl String:arg1[128];
+    decl String:arg2[128];
+    GetCmdArg(1, arg1, sizeof(arg1));
+    GetCmdArg(2, arg2, sizeof(arg2));
+
+    if (GetCmdArgs() == 1) {
+        new target = FindTarget(client, arg1, true, false);
+        if (target > 0 && target <= MaxClients && IsClientConnected(target)) {
+            decl String:name[128];
+            decl String:steamid[128];
+            GetClientName(target, name, sizeof(name));
+            GetClientAuthString(target, steamid, sizeof(steamid));
+            KvSetString(kv, name, steamid);
+            ReplyToCommand(client, "Added user %s with steam id = %s to notification list.", name, steamid);
+            AddRecipient(arg2);
+        }
+    } else if (GetCmdArgs() == 2) {
+        KvSetString(kv, arg1, arg2);
+        ReplyToCommand(client, "Added user %s with steam id = %s to notification list.", arg1, arg2);
+        AddRecipient(arg2);
+    } else {
+        ReplyToCommand(client, "Usage: sm_spr_add <name> <steamid>");
+    }
+
 }
 
 public Action:Command_RemoveRecipient(client, args) {
