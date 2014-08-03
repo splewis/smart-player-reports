@@ -1,5 +1,9 @@
 #include <sourcemod>
 #include "include/spr.inc"
+// Note: you don't actually need to include the spr.inc file, but
+// it's good practice to do so. That way you get a error
+// if the signature of ReportWeight doesn't match what it
+// should be.
 
 public Plugin:myinfo = {
     name = "SPR example client plugin",
@@ -48,7 +52,7 @@ public Float:ReportWeight(client, victim) {
 }
 
 public OnReportFiled(reporter, victim, Float:weight, String:reason[]) {
-    PrintToServer("%N reporterd %N with weight %f", reporter, victim, weight);
+    PrintToServer("%N reported %N with weight %f", reporter, victim, weight);
 }
 
 public OnDemoStart(victim, String:victim_name[], String:victim_steamid[], String:reason[], String:demo_name[]) {
