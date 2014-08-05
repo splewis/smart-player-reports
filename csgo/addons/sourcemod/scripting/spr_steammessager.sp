@@ -38,6 +38,7 @@ public OnDemoStart(victim, String:victim_name[], String:victim_steamid[], String
     decl String:msg[1024];
     Format(msg, sizeof(msg), "You have a new report to review: (%s, %s) on %s, recorded to %s",
            victim_name, victim_steamid, hostname, demo_name);
+    MessageBot_SetLoginData(g_BotUser, g_BotPassword);
     MessageBot_SendMessage(Message_CallBack, msg);
 }
 
