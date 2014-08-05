@@ -103,14 +103,14 @@ static ReadConfig() {
     BuildPath(Path_SM, configFile, sizeof(configFile), "configs/spr_steammessager.cfg");
 
     if (!FileExists(configFile)) {
-        LogMessage("The spr_steammessager config (%s) file does not exist", configFile);
+        LogError("The spr_steammessager config (%s) file does not exist", configFile);
         return;
     }
 
     kv = CreateKeyValues("BoxLocationsAndAngles");
     FileToKeyValues(kv, configFile);
     if (!KvGotoFirstSubKey(kv)) {
-        LogMessage("The spr_steammessager config (%s) file was empty", configFile);
+        LogError("The spr_steammessager config (%s) file was empty", configFile);
         return;
     }
 

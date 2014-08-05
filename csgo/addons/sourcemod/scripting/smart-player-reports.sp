@@ -391,11 +391,12 @@ public Report(reporter, victim, reason_index) {
 
     new timeStamp = GetTime();
     decl String:formattedTime[128];
-    FormatTime(formattedTime, sizeof(formattedTime), "%Y-%m-%d_%H:%M", timeStamp);
+    FormatTime(formattedTime, sizeof(formattedTime), "%Y-%m-%d_%H-%M", timeStamp);
 
-
+    decl String:logFormattedTime[128];
+    FormatTime(logFormattedTime, sizeof(logFormattedTime), "%Y-%m-%d", timeStamp);
     decl String:logFile[PLATFORM_MAX_PATH];
-    BuildPath(Path_SM, logFile, sizeof(logFile), "logs/smart_player_reports_%s.log", formattedTime);
+    BuildPath(Path_SM, logFile, sizeof(logFile), "logs/smart_player_reports_%s.log", logFormattedTime);
     if (log_to_file) {
         LogToFile(logFile, "%L reported %L, weight: %f, reason: %s",
                   reporter, victim, weight, g_ReportStrings[reason_index]);
