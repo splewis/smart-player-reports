@@ -7,8 +7,16 @@ smart-player-reports
 
 This is a sourcemod plugin for dealing with abusive players. It's name has "smart" in it because it tries to help admins deal with these reports by:
 - **Storing a 'weight' to a report** (by default all reports are weight 1 - but you can implement your own function to compute weights)
-- **Automatically recording to a demo** (via ``tv_record``) if there are enough reports for a player
+- **Automatically recording to a demo** (via ``tv_record``) if there are enough reports (i.e. enough weight applied by reports) for a player
 - **Logging** to admins on the server, a log file, or a MySQL database
+
+
+When a player files a report, the weight of the report is calculated. Each player stores a total reported weight that tracks the sum of report weights against them. Once this reaches the demo threshold, a demo is created.
+
+Additionally, a player has a reputation field, which represents how much they report. It starts at 10.0, and goes down with each report. (How much it goes down is a function of the report weight). If a player has a negative-valued reputation, their reports are ignored. This prevents report spam, and is invisible to the end user.
+
+Over time, the reputation for a player slowly rises and the weight held against them slowly declines.
+
 
 **Note: this plugin only supports CS:GO due to how it works with GOTV demo files**
 
@@ -32,7 +40,7 @@ All of the following can be used by players on the server:
 - **/report playername**
 - **sm_report**
 - **sm_report playername**
-- **!report playername** (warning: everyone will see this in chat!)
+- **!report playername**
 
 
 ### Download
@@ -52,19 +60,12 @@ When the plugin starts up for the first time, it will create **cfg/sourcemod/sma
 - **sm_spr_database_name**: database in databases.cfg to use (default "smart_player_reports")
 - **sm_spr_demo_duration**: after how long should a demo be stopped "(default 240.0")
 - **sm_spr_log_to_admins**: should report info be printed to admins in chat (default 1)
-- **sm_spr_log_to_database**: should reports create records in a MySQL database (default 1)
 - **sm_spr_log_to_file**: should reports be logged to a file (default 1)
-- **sm_spr_max_reports_in_plugin**: max reports to save within the plugin before clearing (default 1000)
-- **sm_spr_reports_per_map**: number of reports a player can use per map (default 1)
 - **sm_spr_weight_source_plugin_filename**: what plugin, if any, is providing a ReportWeight function (default "")
-- **sm_spr_weight_to_demo**: how many report weight is needed to create a demo (default 10)
-
-
-Note that the plugin stored *cumulative weights** for each player (stored in a trie by steamid).
-When a player is reported, the weight of that report is added to the cumulative weight.
-Once that weight reaches a threshold, a demo is recorded.
-
-The cumulative weights are what is being cleared by ``sm_spr_max_reports_in_plugin``, since you don't want to let it grow too much.
+- **sm_spr_weight_to_demo**: how many report weight is needed to create a demo (default 10.0
+- **sm_spr_reputation_recovery_per_minute**
+- **sm_spr_reputation_loss_constant**
+- **sm_spr_weight_decay_per_minute**
 
 
 ### For plugin developers
@@ -109,9 +110,7 @@ public Float:ReportWeight(client, victim) {
 ```
 
 Note that the **function name must be** ``ReportWeight``.
-This is intentional with my goal of keeping things simple.
 
-I'm aware things like plugin libraries, forwards, and natives exist.
 
 ### GOTV demos
 
@@ -130,7 +129,7 @@ You need to enable gotv to use the demo-recording feature. Adding the following 
     tv_timeout 60
     tv_transmitall 1
 
-Of course, you can tweak the values.
+Of course, you can tweak the values. ``tv_enable 1`` must be on.
 
 
 ### Using the MySQL database
