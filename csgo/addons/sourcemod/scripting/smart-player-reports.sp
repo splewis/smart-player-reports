@@ -247,7 +247,7 @@ public Action:Timer_ReputationIncrease(Handle:timer) {
 }
 
  public CanReport(reporter, victim) {
-    if (!IsValidClient(reporter) || !IsValidClient(victim) || IsFakeClient(reporter) || IsFakeClient(victim) || reporter == victim)
+    if (!IsValidClient(reporter) || !IsValidClient(victim) || IsFakeClient(reporter) || IsFakeClient(victim) /*|| reporter == victim*/)
         return false;
     return true;
  }
@@ -256,29 +256,54 @@ public Action:Timer_ReputationIncrease(Handle:timer) {
  * Hook for player chat actions.
  */
 public Action:Command_Say(client, const String:command[], argc) {
-    decl String:text[192];
-    if (GetCmdArgString(text, sizeof(text)) < 1)
+    decl String:cmd[192];
+
+    if (GetCmdArgString(cmd, sizeof(cmd)) < 1) {
         return Plugin_Continue;
 
-    StripQuotes(text);
+    } else {
+        // Get command args
+        StripQuotes(cmd);
+        decl String:buffers[4][192];
+        new numArgs = ExplodeString(cmd, " ", buffers, sizeof(buffers), 192);
+        decl String:arg1[192];
+        decl String:arg2[192];
+        strcopy(arg1, sizeof(arg1), buffers[0]);
+        strcopy(arg2, sizeof(arg2), buffers[1]);
+        StripQuotes(arg1);
+        StripQuotes(arg2);
 
-    // TODO: get .report <name> to work!
-    new String:reportChatCommands[][] = { ".report", "!report" };
-    for (new i = 0; i < sizeof(reportChatCommands); i++) {
-        if (strcmp(text[0], reportChatCommands[i], false) == 0) {
-            Command_Report(client, 0);
-            return Plugin_Handled;
+        // Is this a report?
+        new bool:isReport = false;
+        new String:reportChatCommands[][] = { ".report", "!report" };
+        for (new i = 0; i < sizeof(reportChatCommands); i++) {
+            if (strcmp(buffers[0][0], reportChatCommands[i], false) == 0) {
+                isReport = true;
+            }
         }
-    }
 
-    return Plugin_Continue;
+        // File the report
+        if (isReport) {
+            if (numArgs <= 1) {
+                ReportPlayerMenu(client);
+            } else {
+                new target = FindTarget(client, arg2, true, false);
+                if (IsValidClient(target) && !IsFakeClient(target))
+                    ReportReasonMenu(client, target);
+            }
+            return Plugin_Handled;
+        } else {
+            return Plugin_Continue;
+        }
+
+    }
 }
 
 public Action:Command_Report(client, args) {
     new String:arg1[32];
     if (args >= 1 && GetCmdArg(1, arg1, sizeof(arg1))) {
         new target = FindTarget(client, arg1, true, false);
-        if (target != -1 || !IsValidClient(target) || IsFakeClient(target)) {
+        if (IsValidClient(target) && !IsFakeClient(target)) {
             ReportReasonMenu(client, target);
         }
     } else {
