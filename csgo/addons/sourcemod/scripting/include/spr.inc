@@ -8,4 +8,7 @@ forward OnReportFiled(reporter, victim, Float:weight, String:reason[]);
 forward OnDemoStart(victim, String:victim_name[], String:victim_steamid[], String:reason[], String:demo_name[]);
 
 // Called whenever a demo is finished recording.
+// Realize that the victim may have left in the time since the demo started,
+// so the victim client index may be invalid now. If the victim left,
+// -1 will be passed for their client index.
 forward OnDemoStop(victim, String:victim_name[], String:victim_steamid[], String:reason[], String:demo_name[]);

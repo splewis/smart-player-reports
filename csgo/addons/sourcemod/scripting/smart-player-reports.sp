@@ -208,6 +208,8 @@ public OnClientDisconnect(client) {
     if (db != INVALID_HANDLE)
         DB_WritePlayerInfo(client);
     g_FetchedData[client] = false;
+    if (g_DemoVictim == client)
+        g_DemoVictim = -1;
 }
 
 public Event_OnRoundPostStart(Handle:event, const String:name[], bool:dontBroadcast) {
@@ -454,6 +456,8 @@ public Report(reporter, victim, reason_index) {
         g_DemoReasonIndex = reason_index;
         Call_StartForward(g_hOnDemoStart);
         Call_PushCell(victim);
+        Call_PushString(g_DemoVictimName);
+        Call_PushString(g_DemoVictimSteamID);
         Call_PushString(g_ReportStrings[reason_index]);
         Call_PushString(g_DemoName);
         Call_Finish();

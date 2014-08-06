@@ -22,7 +22,7 @@ public OnMapStart() {
 public OnDemoStart(victim, String:victim_name[], String:victim_steamid[], String:reason[], String:demo_name[]) {
     decl String:hostname[128];
     Server_GetHostName(hostname, sizeof(hostname));
-    decl String:msg[1024];
+    decl String:msg[4196];
     Format(msg, sizeof(msg), "You have a new report to review: (%s, %s) on %s, recorded to %s",
            victim_name, victim_steamid, hostname, demo_name);
     MessageBot_SetSendMethod(SEND_METHOD_ONLINEAPI);
