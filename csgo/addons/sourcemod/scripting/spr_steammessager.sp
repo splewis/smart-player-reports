@@ -59,23 +59,11 @@ static ReadConfig() {
     do {
         KvGetSectionName(kv, buffer, sizeof(buffer));
         if (StrEqual(buffer, "bot")) {
-            decl String:user[128];
-            decl String:password[128];
-            KvGetString(kv, "username", user, sizeof(user));
-            KvGetString(kv, "password", password, sizeof(password));
-            SetLoginUser(user);
-            SetLoginPassword(password);
+            KvGetString(kv, "username", g_BotUser, sizeof(g_BotUser));
+            KvGetString(kv, "password", g_BotPassword, sizeof(g_BotPassword));
         } else {
             MessageBot_AddRecipient(buffer);
         }
     } while (KvGotoNextKey(kv));
     KvRewind(kv);
-}
-
-static SetLoginUser(String:username[]) {
-    strcopy(g_BotUser, sizeof(g_BotUser), username);
-}
-
-static SetLoginPassword(String:password[]) {
-    strcopy(g_BotPassword, sizeof(g_BotPassword), password);
 }

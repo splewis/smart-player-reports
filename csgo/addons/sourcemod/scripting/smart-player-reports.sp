@@ -249,7 +249,7 @@ public Action:Timer_ReputationIncrease(Handle:timer) {
 }
 
  public CanReport(reporter, victim) {
-    if (!IsValidClient(reporter) || !IsValidClient(victim) || IsFakeClient(reporter) || IsFakeClient(victim) /*|| reporter == victim*/)
+    if (!IsValidClient(reporter) || !IsValidClient(victim) || IsFakeClient(reporter) || IsFakeClient(victim) || reporter == victim)
         return false;
     return true;
  }
