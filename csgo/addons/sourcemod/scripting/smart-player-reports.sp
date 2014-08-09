@@ -454,6 +454,8 @@ public Report(reporter, victim, reason_index) {
 
         g_DemoVictim = victim;
         g_DemoReasonIndex = reason_index;
+        strcopy(g_DemoVictimName, sizeof(g_DemoVictimName), victim_name);
+        strcopy(g_DemoVictimSteamID, sizeof(g_DemoVictimSteamID), g_steamid[victim]);
         Call_StartForward(g_hOnDemoStart);
         Call_PushCell(victim);
         Call_PushString(g_DemoVictimName);

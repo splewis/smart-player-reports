@@ -62,7 +62,9 @@ static ReadConfig() {
             KvGetString(kv, "username", g_BotUser, sizeof(g_BotUser));
             KvGetString(kv, "password", g_BotPassword, sizeof(g_BotPassword));
         } else {
-            MessageBot_AddRecipient(buffer);
+            if (!MessageBot_IsRecipient(buffer)) {
+                MessageBot_AddRecipient(buffer);
+            }
         }
     } while (KvGotoNextKey(kv));
     KvRewind(kv);
