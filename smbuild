@@ -1,0 +1,13 @@
+Plugin(source='scripting/smart-player-reports.sp')
+Plugin(
+    source='scripting/spr_steammessager.sp',
+)
+
+Package(name='smart-player-reports',
+        plugins=['smart-player-reports'],
+)
+
+Package(name='smart-player-reports-all',
+        extends=['smart-player-reports'],
+        plugins=['spr_steammessager'],
+)
