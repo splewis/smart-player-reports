@@ -70,7 +70,7 @@ When the plugin starts up for the first time, it will create **cfg/sourcemod/sma
 
 An important cvar is ``sm_spr_weight_source_plugin_filename``. This defines a plugin name (with the .smx at the end!) that is supplying a function ``public Float:ReportWeight(client, victim)``.
 
-Example from [example.sp](https://github.com/splewis/smart-player-reports/blob/master/csgo/addons/sourcemod/scripting/example.sp)
+Example from [example.sp](https://github.com/splewis/smart-player-reports/blob/master/scripting/example.sp)
 
 ```
 /**
