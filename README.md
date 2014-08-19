@@ -1,8 +1,6 @@
 smart-player-reports
 =======================================
 
-[![Build Status](https://travis-ci.org/splewis/smart-player-reports.svg?branch=master)](https://travis-ci.org/splewis/smart-player-reports)
-
 **This is currently un-released, unstable, BETA software! Don't try to use it just yet.**
 
 This is a sourcemod plugin for dealing with abusive players. It's name has "smart" in it because it tries to help admins deal with these reports by:
