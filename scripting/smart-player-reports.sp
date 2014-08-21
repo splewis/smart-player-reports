@@ -11,7 +11,7 @@
  *                     *
  ***********************/
 
-new String:g_ReportStrings[][] = {
+char g_ReportStrings[][] = {
     "Being better than me",
     "Abusive voice chat",
     "Abusive text chat",
@@ -19,7 +19,7 @@ new String:g_ReportStrings[][] = {
     "Griefing"
 };
 
-new String:g_ReportFields[][] = {
+char g_ReportFields[][] = {
     "id INT NOT NULL AUTO_INCREMENT",
     "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
     "reporter_steamid varchar(64) NOT NULL DEFAULT ''",
@@ -32,7 +32,7 @@ new String:g_ReportFields[][] = {
     "PRIMARY KEY (id)"
 };
 
-new String:g_PlayerFields[][] = {
+char g_PlayerFields[][] = {
     "steamid VARCHAR(64) NOT NULL DEFAULT '' PRIMARY KEY",
     "name VARCHAR(64) NOT NULL DEFAULT ''",
     "reputation FLOAT NOT NULL DEFAULT 10.0",
@@ -40,43 +40,42 @@ new String:g_PlayerFields[][] = {
 };
 
 /** ConVar handles **/
-new Handle:g_hDatabaseName = INVALID_HANDLE;
-new Handle:g_hDemoDuration = INVALID_HANDLE;
-new Handle:g_hLogToAdmins = INVALID_HANDLE;
-new Handle:g_hLogToFile = INVALID_HANDLE;
-new Handle:g_hReputationRecovery = INVALID_HANDLE;
-new Handle:g_hVersion = INVALID_HANDLE;
-new Handle:g_hWeightDecay = INVALID_HANDLE;
-new Handle:g_hWeightSourcePlugin = INVALID_HANDLE;
-new Handle:g_hWeightToDemo = INVALID_HANDLE;
-new Handle:g_ReputationLossConstant = INVALID_HANDLE;
+Handle g_hDatabaseName = INVALID_HANDLE;
+Handle g_hDemoDuration = INVALID_HANDLE;
+Handle g_hLogToAdmins = INVALID_HANDLE;
+Handle g_hLogToFile = INVALID_HANDLE;
+Handle g_hReputationRecovery = INVALID_HANDLE;
+Handle g_hVersion = INVALID_HANDLE;
+Handle g_hWeightDecay = INVALID_HANDLE;
+Handle g_hWeightSourcePlugin = INVALID_HANDLE;
+Handle g_hWeightToDemo = INVALID_HANDLE;
+Handle g_ReputationLossConstant = INVALID_HANDLE;
 
 /** Forwards **/
-new Handle:g_hOnReportFiled = INVALID_HANDLE;
-new Handle:g_hOnDemoStart = INVALID_HANDLE;
-new Handle:g_hOnDemoStop = INVALID_HANDLE;
+Handle g_hOnReportFiled = INVALID_HANDLE;
+Handle g_hOnDemoStart = INVALID_HANDLE;
+Handle g_hOnDemoStop = INVALID_HANDLE;
 
 /** Database interactions **/
-new bool:g_dbConnected = false;
-new Handle:db = INVALID_HANDLE;
-new String:g_sqlBuffer[1024];
+bool g_dbConnected = false;
+Handle db = INVALID_HANDLE;
 
 /** Reporting logic **/
-new String:g_DemoName[PLATFORM_MAX_PATH];
-new any:g_DemoReasonIndex = -1;
-new any:g_DemoVictim = -1;
-new String:g_DemoVictimSteamID[64] = "";
-new String:g_DemoVictimName[64] = "";
-new bool:g_Recording = false;
-new bool:g_StopRecordingSignal = false;
+char g_DemoName[PLATFORM_MAX_PATH];
+int g_DemoReasonIndex = -1;
+int g_DemoVictim = -1;
+char g_DemoVictimSteamID[64] = "";
+char g_DemoVictimName[64] = "";
+bool g_Recording = false;
+bool g_StopRecordingSignal = false;
 
-new String:g_steamid[MAXPLAYERS+1][64];
-new bool:g_FetchedData[MAXPLAYERS+1];
-new Float:g_Reputation[MAXPLAYERS+1];
-new Float:g_CumulativeWeight[MAXPLAYERS+1];
+char g_steamid[MAXPLAYERS+1][64];
+bool g_FetchedData[MAXPLAYERS+1];
+float g_Reputation[MAXPLAYERS+1];
+float g_CumulativeWeight[MAXPLAYERS+1];
 
 /** Which victim the client is trying to report **/
-new any:g_Reporting[MAXPLAYERS+1] = 0;
+int g_Reporting[MAXPLAYERS+1] = 0;
 
 
 
@@ -86,29 +85,29 @@ new any:g_Reporting[MAXPLAYERS+1] = 0;
  *                         *
  ***************************/
 
-public any:ReportWeightHandler(client, victim) {
+public any:ReportWeightHandler(int client, int victim) {
     if (!CanReport(client, victim))
         return 0;
 
-    decl String:plugin_weight_name[128];
+    char plugin_weight_name[128];
     GetConVarString(g_hWeightSourcePlugin, plugin_weight_name, sizeof(plugin_weight_name));
 
     if (StrEqual("", plugin_weight_name)) {
         return DefaultReportWeight(client, victim);
     } else {
-        new Handle:plugin = FindPluginByFile(plugin_weight_name);
+        Handle plugin = FindPluginByFile(plugin_weight_name);
         if (plugin == INVALID_HANDLE) {
             LogError("Failed to find plugin %s", plugin_weight_name);
             return DefaultReportWeight(client, victim);
         }
 
-        new Function:report_weight_function = GetFunctionByName(plugin, "ReportWeight");
+        Function report_weight_function = GetFunctionByName(plugin, "ReportWeight");
         if (report_weight_function == INVALID_FUNCTION) {
             LogError("Failed to find function %s in %s", "ReportWeight", plugin_weight_name);
             return DefaultReportWeight(client, victim);
         }
 
-        new Float:result;
+        float result = 0.0;
         Call_StartFunction(plugin, report_weight_function);
         Call_PushCell(client);
         Call_PushCell(victim);
@@ -117,7 +116,7 @@ public any:ReportWeightHandler(client, victim) {
     }
 }
 
-public Float:DefaultReportWeight(client, victim) {
+public float DefaultReportWeight(int client, int victim) {
     return 1.0;
 }
 
@@ -197,14 +196,14 @@ public OnMapEnd() {
     }
 }
 
-public OnClientPostAdminCheck(client) {
+public OnClientPostAdminCheck(int client) {
     if (IsClientInGame(client) && !IsFakeClient(client) && g_dbConnected) {
         GetClientAuthString(client, g_steamid[client], 64);
         DB_AddPlayer(client);
     }
 }
 
-public OnClientDisconnect(client) {
+public OnClientDisconnect(int client) {
     if (db != INVALID_HANDLE)
         DB_WritePlayerInfo(client);
     g_FetchedData[client] = false;
@@ -212,7 +211,7 @@ public OnClientDisconnect(client) {
         g_DemoVictim = -1;
 }
 
-public Event_OnRoundPostStart(Handle:event, const String:name[], bool:dontBroadcast) {
+public Event_OnRoundPostStart(Handle event, const char name[], bool dontBroadcast) {
     if (g_StopRecordingSignal) {
         g_Recording = false;
         g_StopRecordingSignal = false;
@@ -235,10 +234,10 @@ public Event_OnRoundPostStart(Handle:event, const String:name[], bool:dontBroadc
  *                                *
  **********************************/
 
-public Action:Timer_ReputationIncrease(Handle:timer) {
-    new Float:dr = GetConVarFloat(g_hReputationRecovery);
-    new Float:dw = GetConVarFloat(g_hWeightDecay);
-    for (new i = 1; i <= MaxClients; i++) {
+public Action:Timer_ReputationIncrease(Handle timer) {
+    float dr = GetConVarFloat(g_hReputationRecovery);
+    float dw = GetConVarFloat(g_hWeightDecay);
+    for (int i = 1; i <= MaxClients; i++) {
         if (IsPlayer(i)) {
             g_Reputation[i] += dr;
             if (g_CumulativeWeight[i] > 0.0)
@@ -248,7 +247,7 @@ public Action:Timer_ReputationIncrease(Handle:timer) {
     return Plugin_Continue;
 }
 
- public CanReport(reporter, victim) {
+ public bool CanReport(int reporter, int victim) {
     if (!IsValidClient(reporter) || !IsValidClient(victim) || IsFakeClient(reporter) || IsFakeClient(victim) || reporter == victim)
         return false;
     return true;
@@ -257,8 +256,8 @@ public Action:Timer_ReputationIncrease(Handle:timer) {
 /**
  * Hook for player chat actions.
  */
-public Action:Command_Say(client, const String:command[], argc) {
-    decl String:cmd[192];
+public Action Command_Say(int client, const char command[], int argc) {
+    char cmd[192];
 
     if (GetCmdArgString(cmd, sizeof(cmd)) < 1) {
         return Plugin_Continue;
@@ -266,19 +265,19 @@ public Action:Command_Say(client, const String:command[], argc) {
     } else {
         // Get command args
         StripQuotes(cmd);
-        decl String:buffers[4][192];
-        new numArgs = ExplodeString(cmd, " ", buffers, sizeof(buffers), 192);
-        decl String:arg1[192];
-        decl String:arg2[192];
+        char buffers[4][192];
+        int numArgs = ExplodeString(cmd, " ", buffers, sizeof(buffers), 192);
+        char arg1[192];
+        char arg2[192];
         strcopy(arg1, sizeof(arg1), buffers[0]);
         strcopy(arg2, sizeof(arg2), buffers[1]);
         StripQuotes(arg1);
         StripQuotes(arg2);
 
         // Is this a report?
-        new bool:isReport = false;
-        new String:reportChatCommands[][] = { ".report", "!report" };
-        for (new i = 0; i < sizeof(reportChatCommands); i++) {
+        bool isReport = false;
+        char reportChatCommands[][] = { ".report", "!report" };
+        for (int i = 0; i < sizeof(reportChatCommands); i++) {
             if (strcmp(buffers[0][0], reportChatCommands[i], false) == 0) {
                 isReport = true;
             }
@@ -289,7 +288,7 @@ public Action:Command_Say(client, const String:command[], argc) {
             if (numArgs <= 1) {
                 ReportPlayerMenu(client);
             } else {
-                new target = FindTarget(client, arg2, true, false);
+                int target = FindTarget(client, arg2, true, false);
                 if (IsValidClient(target) && !IsFakeClient(target))
                     ReportReasonMenu(client, target);
             }
@@ -301,10 +300,10 @@ public Action:Command_Say(client, const String:command[], argc) {
     }
 }
 
-public Action:Command_Report(client, args) {
-    new String:arg1[32];
+public Action Command_Report(int client, args) {
+    char arg1[32];
     if (args >= 1 && GetCmdArg(1, arg1, sizeof(arg1))) {
-        new target = FindTarget(client, arg1, true, false);
+        int target = FindTarget(client, arg1, true, false);
         if (IsValidClient(target) && !IsFakeClient(target)) {
             ReportReasonMenu(client, target);
         }
@@ -313,14 +312,14 @@ public Action:Command_Report(client, args) {
     }
 }
 
-public ReportPlayerMenu(client) {
-    new Handle:menu = CreateMenu(ReportPlayerMenuHandler);
+public void ReportPlayerMenu(int client) {
+    Handle menu = CreateMenu(ReportPlayerMenuHandler);
     SetMenuTitle(menu, "Who are you reporting?");
     SetMenuExitButton(menu, true);
-    new count = 0;
-    for (new i = 1; i <= MaxClients; i++) {
+    int count = 0;
+    for (int i = 1; i <= MaxClients; i++) {
         if (CanReport(client, i)) {
-            decl String:display[64];
+            char display[64];
             Format(display, sizeof(display), "%N", i);
             AddMenuInt(menu, i, display);
             count++;
@@ -335,45 +334,45 @@ public ReportPlayerMenu(client) {
     }
 }
 
-public ReportPlayerMenuHandler(Handle:menu, MenuAction:action, param1, param2) {
+public ReportPlayerMenuHandler(Handle menu, MenuAction action, param1, param2) {
     if (action == MenuAction_Select) {
-        new client = param1;
-        new choice = GetMenuInt(menu, param2);
+        int client = param1;
+        int choice = GetMenuInt(menu, param2);
         ReportReasonMenu(client, choice);
     } else if (action == MenuAction_End) {
         CloseHandle(menu);
     }
 }
 
-public ReportReasonMenu(client, victim) {
+public void ReportReasonMenu(client, victim) {
     if (!CanReport(client, victim))
         return;
 
     g_Reporting[client] = victim;
-    new Handle:menu = CreateMenu(ReportReasonMenuHandler);
+    Handle menu = CreateMenu(ReportReasonMenuHandler);
     SetMenuTitle(menu, "Why are you reporting them?");
-    for (new i = 0; i < sizeof(g_ReportStrings); i++)
+    for (int i = 0; i < sizeof(g_ReportStrings); i++)
         AddMenuInt(menu, i, g_ReportStrings[i]);
     DisplayMenu(menu, client, 15);
 }
 
-public ReportReasonMenuHandler(Handle:menu, MenuAction:action, param1, param2) {
+public ReportReasonMenuHandler(Handle menu, MenuAction action, param1, param2) {
     if (action == MenuAction_Select) {
-        new client = param1;
-        new reason_index = GetMenuInt(menu, param2);
-        if (reason_index != 0)
-            Report(client, g_Reporting[client], reason_index);
+        int client = param1;
+        int reasonIndex = GetMenuInt(menu, param2);
+        if (reasonIndex != 0)
+            Report(client, g_Reporting[client], reasonIndex);
     } else if (action == MenuAction_End) {
         CloseHandle(menu);
     }
 }
 
-public Report(reporter, victim, reason_index) {
+public void Report(int reporter, int victim, int reasonIndex) {
     PluginMessage(reporter, "Thank you for your report.");
     if (!CanReport(reporter, victim))
         return;
 
-    new Float:weight = ReportWeightHandler(reporter, victim);
+    float weight = ReportWeightHandler(reporter, victim);
     if (weight < 0.0)
         return;
 
@@ -381,24 +380,24 @@ public Report(reporter, victim, reason_index) {
     Call_PushCell(reporter);
     Call_PushCell(victim);
     Call_PushFloat(weight);
-    Call_PushString(g_ReportStrings[reason_index]);
+    Call_PushString(g_ReportStrings[reasonIndex]);
     Call_Finish();
 
     g_Reputation[reporter] -= GetConVarFloat(g_ReputationLossConstant) * weight;
     if (g_Reputation[reporter] < 0.0)
         return;
 
-    new Float:demo_weight = GetConVarFloat(g_hWeightToDemo);
-    new bool:log_to_admin = GetConVarInt(g_hLogToAdmins) != 0;
-    new bool:log_to_file = GetConVarInt(g_hLogToFile) != 0;
-    new Float:demo_length = GetConVarFloat(g_hDemoDuration);
+    float demo_weight = GetConVarFloat(g_hWeightToDemo);
+    bool log_to_admin = GetConVarInt(g_hLogToAdmins) != 0;
+    bool log_to_file = GetConVarInt(g_hLogToFile) != 0;
+    float demo_length = GetConVarFloat(g_hDemoDuration);
 
-    decl String:reporter_name[64];
-    decl String:victim_name[64];
-    decl String:victim_name_sanitized[64];
-    decl String:ip[40];
-    decl String:server[64];
-    decl String:hostname[128];
+    char reporter_name[64];
+    char victim_name[64];
+    char victim_name_sanitized[64];
+    char ip[40];
+    char server[64];
+    char hostname[128];
 
     GetClientName(reporter, reporter_name, sizeof(reporter_name));
     GetClientName(victim, victim_name, sizeof(victim_name));
@@ -412,21 +411,21 @@ public Report(reporter, victim, reason_index) {
 
     if (log_to_admin) {
         PluginMessageToAdmins("%N reported \x03%L \x01for %s",
-                              reporter, victim, g_ReportStrings[reason_index]);
+                              reporter, victim, g_ReportStrings[reasonIndex]);
     }
 
 
-    new timeStamp = GetTime();
-    decl String:formattedTime[128];
+    int timeStamp = GetTime();
+    char formattedTime[128];
     FormatTime(formattedTime, sizeof(formattedTime), "%Y-%m-%d_%H-%M", timeStamp);
 
-    decl String:logFormattedTime[128];
+    char logFormattedTime[128];
     FormatTime(logFormattedTime, sizeof(logFormattedTime), "%Y-%m-%d", timeStamp);
-    decl String:logFile[PLATFORM_MAX_PATH];
+    char logFile[PLATFORM_MAX_PATH];
     BuildPath(Path_SM, logFile, sizeof(logFile), "logs/smart_player_reports_%s.log", logFormattedTime);
     if (log_to_file) {
         LogToFile(logFile, "%L reported %L, weight: %f, reason: %s",
-                  reporter, victim, weight, g_ReportStrings[reason_index]);
+                  reporter, victim, weight, g_ReportStrings[reasonIndex]);
     }
 
     if (!g_Recording && g_CumulativeWeight[victim] >= demo_weight && demo_weight >= 0.0) {
@@ -435,7 +434,7 @@ public Report(reporter, victim, reason_index) {
         g_Recording = true;
         g_StopRecordingSignal = false;
 
-        decl String:steamid_no_colons[64];
+        char steamid_no_colons[64];
         strcopy(steamid_no_colons, 64, g_steamid[victim]);
         steamid_no_colons[7] = '-';
         steamid_no_colons[9] = '-';
@@ -453,14 +452,14 @@ public Report(reporter, victim, reason_index) {
             LogToFile(logFile, "Now recording to %s", g_DemoName);
 
         g_DemoVictim = victim;
-        g_DemoReasonIndex = reason_index;
+        g_DemoReasonIndex = reasonIndex;
         strcopy(g_DemoVictimName, sizeof(g_DemoVictimName), victim_name);
         strcopy(g_DemoVictimSteamID, sizeof(g_DemoVictimSteamID), g_steamid[victim]);
         Call_StartForward(g_hOnDemoStart);
         Call_PushCell(victim);
         Call_PushString(g_DemoVictimName);
         Call_PushString(g_DemoVictimSteamID);
-        Call_PushString(g_ReportStrings[reason_index]);
+        Call_PushString(g_ReportStrings[reasonIndex]);
         Call_PushString(g_DemoName);
         Call_Finish();
 
@@ -473,13 +472,13 @@ public Report(reporter, victim, reason_index) {
             REPORTS_TABLE_NAME,
             g_steamid[reporter],
             victim_name_sanitized, g_steamid[victim],
-            weight, server, g_ReportStrings[reason_index], g_DemoName);
+            weight, server, g_ReportStrings[reasonIndex], g_DemoName);
 
         SQL_TQuery(db, SQLErrorCheckCallback, g_sqlBuffer);
     }
 }
 
-public Action:Timer_StopDemo(Handle:timer) {
+public Action Timer_StopDemo(Handle timer) {
     if (g_Recording)
         g_StopRecordingSignal = true;
 }
@@ -496,9 +495,9 @@ public Action:Timer_StopDemo(Handle:timer) {
  * Attempts to connect to the database.
  * Creates the table if needed.
  */
-public DB_Connect() {
-    new String:error[255];
-    new String:dbName[128];
+public void DB_Connect() {
+    char error[255];
+    char dbName[128];
     GetConVarString(g_hDatabaseName, dbName, sizeof(dbName));
 
     db = SQL_Connect(dbName, true, error, sizeof(error));
@@ -514,16 +513,16 @@ public DB_Connect() {
     }
 }
 
-public DB_AddPlayer(client) {
+public void DB_AddPlayer(int client) {
     // player name
     if (StrEqual(g_steamid[client], "")) {
         LogError("No steamid for %N", client);
         return;
     }
 
-    decl String:name[64];
+    char name[64];
     GetClientName(client, name, sizeof(name));
-    decl String:sanitized_name[64];
+    char sanitized_name[64];
     SQL_EscapeString(db, name, sanitized_name, sizeof(name));
 
     // insert if not already in the table
@@ -541,8 +540,8 @@ public DB_AddPlayer(client) {
     SQL_TQuery(db, T_FetchValues, g_sqlBuffer, client);
 }
 
-public T_FetchValues(Handle:owner, Handle:hndl, const String:error[], any:data) {
-    new client = data;
+public T_FetchValues(Handle owner, Handle hndl, const char error[], any:data) {
+    int client = data;
     g_FetchedData[client] = false;
     if (!IsPlayer(client))
         return;
@@ -558,7 +557,7 @@ public T_FetchValues(Handle:owner, Handle:hndl, const String:error[], any:data) 
     }
 }
 
-public DB_WritePlayerInfo(client) {
+public void DB_WritePlayerInfo(client) {
     if (g_FetchedData[client]) {
         Format(g_sqlBuffer, sizeof(g_sqlBuffer), "UPDATE %s SET cumulative_weight = %f, reputation = %f WHERE steamid = '%s';",
                PLAYERS_TABLE_NAME, g_CumulativeWeight[client], g_Reputation[client], g_steamid[client]);
@@ -575,112 +574,4 @@ public SQLErrorCheckCallback(Handle:owner, Handle:hndl, const String:error[], an
         g_dbConnected = false;
         LogError("Last Connect SQL Error: %s", error);
     }
-}
-
-
-
-/******************************
- *                            *
- *     Generic functions      *
- *                            *
- ******************************/
-
-#define INTEGER_STRING_LENGTH 20 // max number of digits a 64-bit integer can use up as a string
-                                 // this is for converting ints to strings when setting menu values/cookies
-
-/**
- * Function to identify if a client is valid and in game.
- */
-stock bool:IsValidClient(client) {
-    return client > 0 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client);
-}
-
-stock bool:IsPlayer(client) {
-    return IsValidClient(client) && !IsFakeClient(client);
-}
-
-/**
- * Adds an integer to a menu as a string choice.
- */
-stock AddMenuInt(Handle:menu, any:value, String:display[]) {
-    decl String:buffer[INTEGER_STRING_LENGTH];
-    IntToString(value, buffer, sizeof(buffer));
-    AddMenuItem(menu, buffer, display);
-}
-
-/**
- * Gets an integer to a menu from a string choice.
- */
-stock any:GetMenuInt(Handle:menu, any:param2) {
-    decl String:choice[INTEGER_STRING_LENGTH];
-    GetMenuItem(menu, param2, choice, sizeof(choice));
-    return StringToInt(choice);
-}
-
-/**
- * Adds a boolean to a menu as a string choice.
- */
-stock AddMenuBool(Handle:menu, bool:value, String:display[]) {
-    new convertedInt = value ? 1 : 0;
-    AddMenuInt(menu, convertedInt, display);
-}
-
-/**
- * Gets a boolean to a menu from a string choice.
- */
-stock bool:GetMenuBool(Handle:menu, any:param2) {
-    return GetMenuInt(menu, param2) != 0;
-}
-
-stock bool:IsAdmin(client) {
-    return IsValidClient(client) && !IsFakeClient(client) && CheckCommandAccess(client, "sm_kick", ADMFLAG_KICK);
-}
-
-stock PluginMessageToAll(const String:msg[], any:...) {
-    new String:formattedMsg[1024] = CHAT_PREFIX;
-    decl String:tmp[1024];
-    VFormat(tmp, sizeof(tmp), msg, 2);
-    StrCat(formattedMsg, sizeof(formattedMsg), tmp);
-
-    for (new i = 1; i <= MaxClients; i++) {
-        if (IsValidClient(i) && !IsFakeClient(i)) {
-            PrintToChat(i, formattedMsg);
-        }
-    }
-}
-
-stock PluginMessageToAdmins(const String:msg[], any:...) {
-    new String:formattedMsg[1024] = CHAT_PREFIX;
-    decl String:tmp[1024];
-    VFormat(tmp, sizeof(tmp), msg, 2);
-    StrCat(formattedMsg, sizeof(formattedMsg), tmp);
-
-    for (new i = 1; i <= MaxClients; i++) {
-        if (IsValidClient(i) && IsAdmin(i)) {
-            PrintToChat(i, formattedMsg);
-            PrintToConsole(i, formattedMsg);
-        }
-    }
-}
-
-stock PluginMessage(client, const String:msg[], any:...) {
-    new String:formattedMsg[1024] = CHAT_PREFIX;
-    decl String:tmp[1024];
-    VFormat(tmp, sizeof(tmp), msg, 3);
-
-    StrCat(formattedMsg, sizeof(formattedMsg), tmp);
-
-    if (IsValidClient(client) && !IsFakeClient(client))
-        PrintToChat(client, formattedMsg);
-}
-
-public SQL_CreateTable(Handle:db_connection, String:table_name[], String:fields[][], num_fields) {
-    Format(g_sqlBuffer, sizeof(g_sqlBuffer), "CREATE TABLE IF NOT EXISTS %s (", table_name);
-    for (new i = 0; i < num_fields; i++) {
-        StrCat(g_sqlBuffer, sizeof(g_sqlBuffer), fields[i]);
-        if (i != num_fields - 1)
-            StrCat(g_sqlBuffer, sizeof(g_sqlBuffer), ", ");
-    }
-    StrCat(g_sqlBuffer, sizeof(g_sqlBuffer), ");");
-    SQL_FastQuery(db_connection, g_sqlBuffer);
 }

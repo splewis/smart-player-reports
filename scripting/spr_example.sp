@@ -13,7 +13,7 @@ public Plugin:myinfo = {
     url = "https://github.com/splewis/smart-player-reports"
 };
 
-public bool:IsAdmin(client) {
+public bool IsAdmin(client) {
     return CheckCommandAccess(client, "sm_kick", ADMFLAG_KICK);
 }
 
@@ -25,16 +25,16 @@ public bool:IsAdmin(client) {
  * Users are fully unaware of the weight of their report
  * You can do anything you want inside this function!
  */
-public Float:ReportWeight(client, victim) {
-    new Float:weight = 1.0;
+public float ReportWeight(int client, int victim) {
+    float weight = 1.0;
 
     // Count admins more heavily
     if (IsAdmin(client))
         weight += 2.0;
 
     // If no admin on the server, count reports more
-    new bool:admin_on_server = false;
-    for (new i = 1; i <= MaxClients; i++) {
+    bool admin_on_server = false;
+    for (int i = 1; i <= MaxClients; i++) {
         if (IsAdmin(i)) {
             admin_on_server = true;
             break;
@@ -44,21 +44,21 @@ public Float:ReportWeight(client, victim) {
         weight += 2.0;
 
     // You could even count reporters with a short steam ID more!
-    decl String:steamid[64];
+    char steamid[64];
     if (GetClientAuthString(client, steamid, sizeof(steamid)) && strlen(steamid) < 10)
         weight += 1.0;
 
     return weight;
 }
 
-public OnReportFiled(reporter, victim, Float:weight, String:reason[]) {
+public OnReportFiled(int reporter, int victim, float weight, char reason[]) {
     PrintToServer("%N reported %N with weight %f", reporter, victim, weight);
 }
 
-public OnDemoStart(victim, String:victim_name[], String:victim_steamid[], String:reason[], String:demo_name[]) {
+public OnDemoStart(int victim, char victim_name[], char victim_steamid[], char reason[], char demo_name[]) {
     PrintToServer("Started recording %s", demo_name);
 }
 
-public OnDemoStop(victim, String:victim_name[], String:victim_steamid[], String:reason[], String:demo_name[]) {
+public OnDemoStop(int victim, char victim_name[], char victim_steamid[], char reason[], char demo_name[]) {
     PrintToServer("Finished recording %s", demo_name);
 }

@@ -47,7 +47,7 @@ Stable releases are in the [GitHub Releases](https://github.com/splewis/smart-pl
 
 ### Installation
 
-**Only Sourcemod 1.6 is supported.**
+**Only Sourcemod 1.7 is supported.**
 
 Unpack the smart-player-reports.zip file and copy the plugin binary **smart-player-reports.smx** to your plugins folder.
 When the plugin starts up for the first time, it will create **cfg/sourcemod/smart-player-reports.cfg**, which you will most likely want to tweak.
