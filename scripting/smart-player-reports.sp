@@ -2,6 +2,7 @@
 #include <sourcemod>
 #include <smlib>
 #include "spr/common.sp"
+#include "include/spr.inc"
 
 
 
@@ -42,8 +43,6 @@ char g_PlayerFields[][] = {
 /** ConVar handles **/
 Handle g_hDatabaseName = INVALID_HANDLE;
 Handle g_hDemoDuration = INVALID_HANDLE;
-Handle g_hLogToAdmins = INVALID_HANDLE;
-Handle g_hLogToFile = INVALID_HANDLE;
 Handle g_hReputationRecovery = INVALID_HANDLE;
 Handle g_hVersion = INVALID_HANDLE;
 Handle g_hWeightDecay = INVALID_HANDLE;
@@ -62,7 +61,7 @@ Handle db = INVALID_HANDLE;
 
 /** Reporting logic **/
 char g_DemoName[PLATFORM_MAX_PATH];
-int g_DemoReasonIndex = -1;
+char g_DemoReason[256];
 int g_DemoVictim = -1;
 char g_DemoVictimSteamID[64] = "";
 char g_DemoVictimName[64] = "";
@@ -85,9 +84,9 @@ int g_Reporting[MAXPLAYERS+1] = 0;
  *                         *
  ***************************/
 
-public any:ReportWeightHandler(int client, int victim) {
+public float ReportWeightHandler(int client, int victim) {
     if (!CanReport(client, victim))
-        return 0;
+        return 0.0;
 
     char plugin_weight_name[128];
     GetConVarString(g_hWeightSourcePlugin, plugin_weight_name, sizeof(plugin_weight_name));
@@ -141,8 +140,6 @@ public OnPluginStart() {
 
     /** ConVars **/
     g_hDemoDuration = CreateConVar("sm_spr_demo_duration", "240.0", "Max length of a demo. The demo will be shorter if the map ends before this time runs out.", _, true, 30.0);
-    g_hLogToAdmins = CreateConVar("sm_spr_log_to_admins", "1", "Should info about reports/demos be printed to admins on the server?");
-    g_hLogToFile = CreateConVar("sm_spr_log_to_file", "1", "Should info about reports/demos be put into a sourcemod/logs file?");
     g_hDatabaseName = CreateConVar("sm_spr_database_name", "smart_player_reports", "Database to use in configs/databases.cfg");
     g_hWeightToDemo = CreateConVar("sm_spr_weight_to_demo", "10.0", "Report weight required to trigger a demo. Use a negative to never demo, 0.0 to always demo, higher values to require more weight.");
     g_hWeightSourcePlugin = CreateConVar("sm_spr_weight_source_plugin_filename", "", "Other plugin filename that provides a WeightFunction(client, victim) function. You must include the .smx extension. Use empty string for no external plugin.");
@@ -151,7 +148,7 @@ public OnPluginStart() {
     g_hWeightDecay = CreateConVar("sm_spr_weight_decay_per_minute", "0.01", "Decrease in player weight per minute of playtime");
 
     /** Config file **/
-    AutoExecConfig(true, "smart-player-reports", "sourcemod");
+    AutoExecConfig(true, "smart-player-reports");
 
     /** Version cvar **/
     g_hVersion = CreateConVar("sm_smart_player_reports_version", PLUGIN_VERSION, "Current smart player reports version", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY|FCVAR_DONTRECORD);
@@ -176,6 +173,7 @@ public OnPluginStart() {
 }
 
 public OnMapStart() {
+    g_steamid[0] = "SERVER";
     g_Recording = false;
     g_StopRecordingSignal = false;
     if (!g_dbConnected) {
@@ -190,7 +188,7 @@ public OnMapEnd() {
         Call_PushCell(g_DemoVictim);
         Call_PushString(g_DemoVictimName);
         Call_PushString(g_DemoVictimSteamID);
-        Call_PushString(g_ReportStrings[g_DemoReasonIndex]);
+        Call_PushString(g_DemoReason);
         Call_PushString(g_DemoName);
         Call_Finish();
     }
@@ -220,10 +218,24 @@ public Event_OnRoundPostStart(Handle event, const char name[], bool dontBroadcas
         Call_PushCell(g_DemoVictim);
         Call_PushString(g_DemoVictimName);
         Call_PushString(g_DemoVictimSteamID);
-        Call_PushString(g_ReportStrings[g_DemoReasonIndex]);
+        Call_PushString(g_DemoReason);
         Call_PushString(g_DemoName);
         Call_Finish();
     }
+}
+
+public APLRes:AskPluginLoad2(Handle myself, bool late, char error[], err_max) {
+    CreateNative("CreateServerReport", Native_CreateServerReport);
+    RegPluginLibrary("smart-player-reports");
+    return APLRes_Success;
+}
+
+public Native_CreateServerReport(Handle plugin, numParams) {
+    int client = GetNativeCell(1);
+    char reason[256];
+    GetNativeString(2, reason, sizeof(reason));
+    float weight = GetNativeCell(3);
+    ReportWithWeight(0, client, reason, weight);
 }
 
 
@@ -248,7 +260,7 @@ public Action:Timer_ReputationIncrease(Handle timer) {
 }
 
  public bool CanReport(int reporter, int victim) {
-    if (!IsValidClient(reporter) || !IsValidClient(victim) || IsFakeClient(reporter) || IsFakeClient(victim) || reporter == victim)
+    if (!IsValidClient(victim) || IsFakeClient(victim) || reporter == victim)
         return false;
     return true;
  }
@@ -367,12 +379,11 @@ public ReportReasonMenuHandler(Handle menu, MenuAction action, param1, param2) {
     }
 }
 
-public void Report(int reporter, int victim, int reasonIndex) {
+public void ReportWithWeight(int reporter, int victim, char reason[], float weight) {
     PluginMessage(reporter, "Thank you for your report.");
-    if (!CanReport(reporter, victim))
+    if (!CanReport(reporter, victim) || !IsPlayer(victim))
         return;
 
-    float weight = ReportWeightHandler(reporter, victim);
     if (weight < 0.0)
         return;
 
@@ -380,16 +391,16 @@ public void Report(int reporter, int victim, int reasonIndex) {
     Call_PushCell(reporter);
     Call_PushCell(victim);
     Call_PushFloat(weight);
-    Call_PushString(g_ReportStrings[reasonIndex]);
+    Call_PushString(reason);
     Call_Finish();
 
-    g_Reputation[reporter] -= GetConVarFloat(g_ReputationLossConstant) * weight;
-    if (g_Reputation[reporter] < 0.0)
-        return;
+    if (reporter > 0) {
+        g_Reputation[reporter] -= GetConVarFloat(g_ReputationLossConstant) * weight;
+        if (g_Reputation[reporter] < 0.0)
+            return;
+    }
 
     float demo_weight = GetConVarFloat(g_hWeightToDemo);
-    bool log_to_admin = GetConVarInt(g_hLogToAdmins) != 0;
-    bool log_to_file = GetConVarInt(g_hLogToFile) != 0;
     float demo_length = GetConVarFloat(g_hDemoDuration);
 
     char reporter_name[64];
@@ -399,7 +410,11 @@ public void Report(int reporter, int victim, int reasonIndex) {
     char server[64];
     char hostname[128];
 
-    GetClientName(reporter, reporter_name, sizeof(reporter_name));
+    if (reporter == 0)
+        GetClientName(reporter, reporter_name, sizeof(reporter_name));
+    else
+        Server_GetHostName(reporter_name, sizeof(reporter_name));
+
     GetClientName(victim, victim_name, sizeof(victim_name));
     SQL_EscapeString(db, victim_name, victim_name_sanitized, sizeof(victim_name));
 
@@ -408,25 +423,6 @@ public void Report(int reporter, int victim, int reasonIndex) {
     Server_GetHostName(hostname, sizeof(hostname));
 
     g_CumulativeWeight[victim] += weight;
-
-    if (log_to_admin) {
-        PluginMessageToAdmins("%N reported \x03%L \x01for %s",
-                              reporter, victim, g_ReportStrings[reasonIndex]);
-    }
-
-
-    int timeStamp = GetTime();
-    char formattedTime[128];
-    FormatTime(formattedTime, sizeof(formattedTime), "%Y-%m-%d_%H-%M", timeStamp);
-
-    char logFormattedTime[128];
-    FormatTime(logFormattedTime, sizeof(logFormattedTime), "%Y-%m-%d", timeStamp);
-    char logFile[PLATFORM_MAX_PATH];
-    BuildPath(Path_SM, logFile, sizeof(logFile), "logs/smart_player_reports_%s.log", logFormattedTime);
-    if (log_to_file) {
-        LogToFile(logFile, "%L reported %L, weight: %f, reason: %s",
-                  reporter, victim, weight, g_ReportStrings[reasonIndex]);
-    }
 
     if (!g_Recording && g_CumulativeWeight[victim] >= demo_weight && demo_weight >= 0.0) {
         g_CumulativeWeight[victim] -= demo_weight;
@@ -439,6 +435,10 @@ public void Report(int reporter, int victim, int reasonIndex) {
         steamid_no_colons[7] = '-';
         steamid_no_colons[9] = '-';
 
+        int timeStamp = GetTime();
+        char formattedTime[128];
+        FormatTime(formattedTime, sizeof(formattedTime), "%Y-%m-%d_%H-%M", timeStamp);
+
         // format for tv_record command
         Format(g_DemoName, sizeof(g_DemoName), "report_%s_%s", steamid_no_colons, formattedTime);
         ServerCommand("tv_record \"%s\"", g_DemoName);
@@ -446,20 +446,16 @@ public void Report(int reporter, int victim, int reasonIndex) {
 
         // reformat with .dem extension for storage
         Format(g_DemoName, sizeof(g_DemoName), "report_%s_%s.dem", steamid_no_colons, formattedTime);
-        if (log_to_admin)
-            PluginMessageToAdmins("Now recording to \x04%s", g_DemoName);
-        if (log_to_file)
-            LogToFile(logFile, "Now recording to %s", g_DemoName);
 
         g_DemoVictim = victim;
-        g_DemoReasonIndex = reasonIndex;
+        strcopy(g_DemoReason, sizeof(g_DemoReason), reason);
         strcopy(g_DemoVictimName, sizeof(g_DemoVictimName), victim_name);
         strcopy(g_DemoVictimSteamID, sizeof(g_DemoVictimSteamID), g_steamid[victim]);
         Call_StartForward(g_hOnDemoStart);
         Call_PushCell(victim);
         Call_PushString(g_DemoVictimName);
         Call_PushString(g_DemoVictimSteamID);
-        Call_PushString(g_ReportStrings[reasonIndex]);
+        Call_PushString(reason);
         Call_PushString(g_DemoName);
         Call_Finish();
 
@@ -472,10 +468,14 @@ public void Report(int reporter, int victim, int reasonIndex) {
             REPORTS_TABLE_NAME,
             g_steamid[reporter],
             victim_name_sanitized, g_steamid[victim],
-            weight, server, g_ReportStrings[reasonIndex], g_DemoName);
+            weight, server, reason, g_DemoName);
 
         SQL_TQuery(db, SQLErrorCheckCallback, g_sqlBuffer);
     }
+}
+
+public void Report(int reporter, int victim, int reasonIndex) {
+    ReportWithWeight(reporter, victim, g_ReportStrings[reasonIndex], ReportWeightHandler(reporter, victim));
 }
 
 public Action Timer_StopDemo(Handle timer) {

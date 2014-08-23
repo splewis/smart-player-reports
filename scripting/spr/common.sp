@@ -51,10 +51,6 @@ stock bool GetMenuBool(Handle menu, any:param2) {
     return GetMenuInt(menu, param2) != 0;
 }
 
-stock bool IsAdmin(client) {
-    return IsValidClient(client) && !IsFakeClient(client) && CheckCommandAccess(client, "sm_kick", ADMFLAG_KICK);
-}
-
 stock void PluginMessageToAll(const char format[], any:...) {
     char formattedMsg[1024] = CHAT_PREFIX;
     char tmp[1024];
@@ -64,20 +60,6 @@ stock void PluginMessageToAll(const char format[], any:...) {
     for (int i = 1; i <= MaxClients; i++) {
         if (IsValidClient(i) && !IsFakeClient(i)) {
             PrintToChat(i, formattedMsg);
-        }
-    }
-}
-
-stock void PluginMessageToAdmins(const char format[], any:...) {
-    char formattedMsg[1024] = CHAT_PREFIX;
-    char tmp[1024];
-    VFormat(tmp, sizeof(tmp), format, 2);
-    StrCat(formattedMsg, sizeof(formattedMsg), tmp);
-
-    for (int i = 1; i <= MaxClients; i++) {
-        if (IsValidClient(i) && IsAdmin(i)) {
-            PrintToChat(i, formattedMsg);
-            PrintToConsole(i, formattedMsg);
         }
     }
 }

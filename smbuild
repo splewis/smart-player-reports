@@ -4,12 +4,10 @@ Plugin(source='scripting/spr_example.sp')
 
 Package(name='smart-player-reports',
         plugins=['smart-player-reports'],
+        configs=None,
 )
 
 Package(name='smart-player-reports-all',
         extends=['smart-player-reports'],
         plugins=['spr_steammessager'],
-        filegroups={
-            'addons/sourcemod/configs': ['configs/spr_steammessager.cfg'],
-        }
 )

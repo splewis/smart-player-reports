@@ -6,7 +6,6 @@ smart-player-reports
 This is a sourcemod plugin for dealing with abusive players. It's name has "smart" in it because it tries to help admins deal with these reports by:
 - **Storing a 'weight' to a report** (by default all reports are weight 1 - but you can implement your own function to compute weights)
 - **Automatically recording to a demo** (via ``tv_record``) if there are enough reports (i.e. enough weight applied by reports) for a player
-- **Logging** to admins on the server, a log file, or a MySQL database
 
 
 When a player files a report, the weight of the report is calculated. Each player stores a total reported weight that tracks the sum of report weights against them. Once this reaches the demo threshold, a demo is created.
