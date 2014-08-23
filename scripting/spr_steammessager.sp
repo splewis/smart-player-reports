@@ -16,6 +16,7 @@ public Plugin:myinfo = {
 };
 
 public OnMapStart() {
+    MessageBot_ClearRecipients();
     ReadConfig();
 }
 
