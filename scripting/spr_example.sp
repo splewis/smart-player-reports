@@ -6,7 +6,7 @@
 // should be.
 
 public Plugin:myinfo = {
-    name = "SPR example client plugin",
+    name = "[SPR] example client plugin",
     author = "splewis",
     description = "SPR example plugin",
     version = "1.0.0",

@@ -24,8 +24,8 @@ public OnDemoStart(int victim, char victim_name[], char victim_steamid[], char r
     char hostname[128];
     Server_GetHostName(hostname, sizeof(hostname));
     char msg[4196];
-    Format(msg, sizeof(msg), "You have a new report to review: (%s, %s) on %s, recorded to %s",
-           victim_name, victim_steamid, hostname, demo_name);
+    Format(msg, sizeof(msg), "You have a new report to review: (%s, %s) on %s, recorded to %s. Reason: %s",
+           victim_name, victim_steamid, hostname, demo_name, reason);
     MessageBot_SetSendMethod(SEND_METHOD_ONLINEAPI);
     MessageBot_SetLoginData(g_BotUser, g_BotPassword);
     MessageBot_SendMessage(Message_CallBack, msg);
@@ -39,7 +39,7 @@ public Message_CallBack(MessageBotResult:result, error) {
     }
 }
 
-static ReadConfig() {
+public void ReadConfig() {
     char configFile[PLATFORM_MAX_PATH];
     BuildPath(Path_SM, configFile, sizeof(configFile), "configs/spr_steammessager.cfg");
 

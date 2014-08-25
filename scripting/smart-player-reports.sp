@@ -540,7 +540,7 @@ public void DB_AddPlayer(int client) {
     SQL_TQuery(db, T_FetchValues, g_sqlBuffer, client);
 }
 
-public T_FetchValues(Handle owner, Handle hndl, const char error[], any:data) {
+public T_FetchValues(Handle owner, Handle hndl, const char error[], data) {
     int client = data;
     g_FetchedData[client] = false;
     if (!IsPlayer(client))
@@ -568,7 +568,7 @@ public void DB_WritePlayerInfo(client) {
 /**
  * Generic SQL threaded query error callback.
  */
-public SQLErrorCheckCallback(Handle:owner, Handle:hndl, const String:error[], any:data) {
+public SQLErrorCheckCallback(Handle owner, Handle hndl, const char error[], data) {
     if (!StrEqual("", error)) {
         db = INVALID_HANDLE;
         g_dbConnected = false;
