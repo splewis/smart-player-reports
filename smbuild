@@ -1,5 +1,6 @@
 Plugin(source='scripting/smart-player-reports.sp')
 Plugin(source='scripting/spr_steammessager.sp')
+Plugin(source='scripting/spr_micspamcheck.sp')
 Plugin(source='scripting/spr_example.sp')
 
 Package(name='smart-player-reports',
@@ -9,5 +10,5 @@ Package(name='smart-player-reports',
 
 Package(name='smart-player-reports-all',
         extends=['smart-player-reports'],
-        plugins=['spr_steammessager'],
+        plugins=['spr_steammessager', 'spr_micspamcheck'],
 )
