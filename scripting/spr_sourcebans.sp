@@ -38,7 +38,6 @@ public OnDemoStop(int victim, char victim_name[], char victim_steamid[], char re
     HTTP_PostAndDownload(session, downloader, form, url, SubmitBanCallback);
 }
 
-
 public SubmitBanCallback(Handle session, status, Handle downloader, any:data) {
     CloseHandle(downloader);
     CloseHandle(session);

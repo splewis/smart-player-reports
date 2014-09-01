@@ -14,7 +14,7 @@
 #define MIN_TIME_TO_REPORT 120.0
 #define MIN_RATIO_TO_REPORT 0.5
 #define CHECK_INTERVAL 5.0
-#define REPORT_WEIGHT 7.0
+#define REPORT_WEIGHT 3.0
 
 float g_MicUseTime[MAXPLAYERS+1];
 

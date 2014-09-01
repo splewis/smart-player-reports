@@ -8,6 +8,12 @@ Package(name='smart-player-reports',
         configs=None,
 )
 
+Package(name='smart-player-reports-steam-messanger',
+        extends=['smart-player-reports'],
+        plugins=['spr_steammessager'],
+)
+
+
 Package(name='smart-player-reports-all',
         extends=['smart-player-reports'],
         plugins=['spr_steammessager', 'spr_micspamcheck'],
