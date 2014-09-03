@@ -17,7 +17,7 @@ forward void OnDemoStop(int victim, char victim_name[], char victim_steamid[], c
 // This is useful for automatic-detection of offending players.
 native void CreateServerReport(int victim, char reason[], float weight);
 
-public SharedPlugin:__pl_myfile = {
+public SharedPlugin:__pl_spr = {
     name = "smart-player-reports",
     file = "smart-player-reports.smx",
 #if defined REQUIRE_PLUGIN

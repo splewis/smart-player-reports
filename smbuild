@@ -4,7 +4,6 @@ Plugin(source='scripting/spr_example.sp')
 
 Package(name='smart-player-reports',
         plugins=['smart-player-reports'],
-        configs=None,
 )
 
 Package(name='smart-player-reports-steam-messanger',

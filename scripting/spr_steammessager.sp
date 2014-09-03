@@ -33,7 +33,7 @@ public OnDemoStart(int victim, char victim_name[], char victim_steamid[], char r
 
 public Message_CallBack(MessageBotResult:result, error) {
     if (result != RESULT_NO_ERROR) {
-        LogError("MessageBot got an error:");
+        LogError("MessageBot got an error when using bot user = %s:", g_BotUser);
         LogError("result code = %d", result);
         LogError("error code = %d", error);
     }
