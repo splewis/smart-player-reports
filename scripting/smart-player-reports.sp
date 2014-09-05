@@ -231,7 +231,7 @@ public APLRes:AskPluginLoad2(Handle myself, bool late, char error[], err_max) {
 }
 
 #if !defined REQUIRE_PLUGIN
-public __pl_myfile_SetNTVOptional() {
+public __pl_spr_SetNTVOptional() {
     MarkNativeAsOptional("CreateServerReport");
 }
 #endif
