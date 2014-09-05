@@ -1,3 +1,8 @@
+#if defined _spr_included
+  #endinput
+#endif
+#define _spr_included
+
 // Function for calculating weight of a report.
 forward float ReportWeight(int client, int victim);
 
