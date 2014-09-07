@@ -48,18 +48,16 @@ Stable releases are in the [GitHub Releases](https://github.com/splewis/smart-pl
 
 **Only Sourcemod 1.7 is supported.**
 
-Unpack the smart-player-reports.zip file and copy the plugin binary **smart-player-reports.smx** to your plugins folder.
-When the plugin starts up for the first time, it will create **cfg/sourcemod/smart-player-reports.cfg**, which you will most likely want to tweak.
+Unpack the smart-player-reports.zip file and copy the plugin binary ``smart-player-reports.smx`` to your plugins folder.
+When the plugin starts up for the first time, it will create ``csgo/cfg/sourcemod/smart-player-reports.cfg``, which you will most likely want to tweak.
 
 
 ### ConVars
 
 - **sm_spr_database_name**: database in databases.cfg to use (default "smart_player_reports")
 - **sm_spr_demo_duration**: after how long should a demo be stopped "(default 240.0")
-- **sm_spr_log_to_admins**: should report info be printed to admins in chat (default 1)
-- **sm_spr_log_to_file**: should reports be logged to a file (default 1)
-- **sm_spr_weight_source_plugin_filename**: what plugin, if any, is providing a ReportWeight function (default "")
-- **sm_spr_weight_to_demo**: how many report weight is needed to create a demo (default 10.0
+- **sm_spr_weight_source_plugin_filename**: what plugin, if any, is providing a ReportWeight function (default "", where each report has weight 1.0)
+- **sm_spr_weight_to_demo**: how much report weight is needed to create a demo (default 10.0)
 - **sm_spr_reputation_recovery_per_minute**
 - **sm_spr_reputation_loss_constant**
 - **sm_spr_weight_decay_per_minute**
@@ -131,31 +129,32 @@ Of course, you can tweak the values. ``tv_enable 1`` must be on.
 
 ### Using the MySQL database
 
-    mysql> describe spr_reports;
-    +------------------+--------------+------+-----+-------------------+----------------+
-    | Field            | Type         | Null | Key | Default           | Extra          |
-    +------------------+--------------+------+-----+-------------------+----------------+
-    | id               | int(11)      | NO   | PRI | NULL              | auto_increment |
-    | timestamp        | timestamp    | NO   |     | CURRENT_TIMESTAMP |                |
-    | reporter_steamid | varchar(64)  | NO   |     |                   |                |
-    | victim_name      | varchar(64)  | NO   |     |                   |                |
-    | victim_steamid   | varchar(64)  | NO   |     |                   |                |
-    | weight           | float        | NO   |     | 0                 |                |
-    | description      | varchar(256) | NO   |     |                   |                |
-    | server           | varchar(64)  | NO   |     |                   |                |
-    | demo             | varchar(128) | NO   |     |                   |                |
-    +------------------+--------------+------+-----+-------------------+----------------+
+```
+mysql> describe spr_reports;
++------------------+--------------+------+-----+-------------------+----------------+
+| Field            | Type         | Null | Key | Default           | Extra          |
++------------------+--------------+------+-----+-------------------+----------------+
+| id               | int(11)      | NO   | PRI | NULL              | auto_increment |
+| timestamp        | timestamp    | NO   |     | CURRENT_TIMESTAMP |                |
+| reporter_steamid | varchar(64)  | NO   |     |                   |                |
+| victim_name      | varchar(64)  | NO   |     |                   |                |
+| victim_steamid   | varchar(64)  | NO   |     |                   |                |
+| weight           | float        | NO   |     | 0                 |                |
+| description      | varchar(256) | NO   |     |                   |                |
+| server           | varchar(64)  | NO   |     |                   |                |
+| demo             | varchar(128) | NO   |     |                   |                |
++------------------+--------------+------+-----+-------------------+----------------+
 
-
-    mysql> describe spr_players;
-    +-------------------+-------------+------+-----+---------+-------+
-    | Field             | Type        | Null | Key | Default | Extra |
-    +-------------------+-------------+------+-----+---------+-------+
-    | steamid           | varchar(64) | NO   | PRI |         |       |
-    | name              | varchar(64) | NO   |     |         |       |
-    | reputation        | float       | NO   |     | 10      |       |
-    | cumulative_weight | float       | NO   |     | 0       |       |
-    +-------------------+-------------+------+-----+---------+-------+
+mysql> describe spr_players;
++-------------------+-------------+------+-----+---------+-------+
+| Field             | Type        | Null | Key | Default | Extra |
++-------------------+-------------+------+-----+---------+-------+
+| steamid           | varchar(64) | NO   | PRI |         |       |
+| name              | varchar(64) | NO   |     |         |       |
+| reputation        | float       | NO   |     | 10      |       |
+| cumulative_weight | float       | NO   |     | 0       |       |
++-------------------+-------------+------+-----+---------+-------+
+```
 
 
 Currently there are no tools for actually using the reports in the database.
