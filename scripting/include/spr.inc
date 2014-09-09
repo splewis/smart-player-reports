@@ -31,3 +31,9 @@ public SharedPlugin:__pl_spr = {
     required = 0,
 #endif
 };
+
+#if !defined REQUIRE_PLUGIN
+public __pl_spr_SetNTVOptional() {
+    MarkNativeAsOptional("CreateServerReport");
+}
+#endif

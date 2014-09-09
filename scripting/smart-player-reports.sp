@@ -230,12 +230,6 @@ public APLRes:AskPluginLoad2(Handle myself, bool late, char error[], err_max) {
     return APLRes_Success;
 }
 
-#if !defined REQUIRE_PLUGIN
-public __pl_spr_SetNTVOptional() {
-    MarkNativeAsOptional("CreateServerReport");
-}
-#endif
-
 public Native_CreateServerReport(Handle plugin, numParams) {
     int client = GetNativeCell(1);
     char reason[256];
