@@ -195,8 +195,9 @@ public OnMapEnd() {
 }
 
 public OnClientPostAdminCheck(int client) {
-    if (IsClientInGame(client) && !IsFakeClient(client) && g_dbConnected) {
-        GetClientAuthString(client, g_steamid[client], 64);
+    if (IsClientInGame(client) && !IsFakeClient(client) && g_dbConnected &&
+        GetClientAuthId(client, AuthId_Steam2, g_steamid[client], 64)) {
+
         DB_AddPlayer(client);
     }
 }
