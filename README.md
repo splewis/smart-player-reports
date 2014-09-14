@@ -14,8 +14,7 @@ Additionally, a player has a reputation field, which represents how much they re
 
 Over time, the reputation for a player slowly rises and the weight held against them slowly declines.
 
-
-**Note: this plugin only supports CS:GO due to how it works with GOTV demo files**
+**Note: this plugin only supports CS:GO**
 
 While I consider it smart to do these and a step up from some other plugins, the main design decision is to **keep it simple, stupid**.
 As such this plugin is *very* lightweight in its implementation.
@@ -65,7 +64,7 @@ When the plugin starts up for the first time, it will create ``csgo/cfg/sourcemo
 
 ### For plugin developers
 
-An important cvar is ``sm_spr_weight_source_plugin_filename``. This defines a plugin name (with the .smx at the end!) that is supplying a function ``public Float:ReportWeight(client, victim)``.
+An important cvar is ``sm_spr_weight_source_plugin_filename``. This defines a plugin name (with the .smx at the end!) that is supplying a function ``public float ReportWeight(int client, int victim)``.
 
 Example from [example.sp](https://github.com/splewis/smart-player-reports/blob/master/scripting/example.sp)
 
@@ -77,16 +76,16 @@ Example from [example.sp](https://github.com/splewis/smart-player-reports/blob/m
  * Users are fully unaware of the weight of their report
  * You can do anything you want inside this function!
  */
-public Float:ReportWeight(client, victim) {
-    new Float:weight = 1.0;
+public float ReportWeight(int client, int victim) {
+    float weight = 1.0;
 
     // Count admins more heavily
     if (IsAdmin(client))
         weight += 2.0;
 
     // If no admin on the server, count reports more
-    new bool:admin_on_server = false;
-    for (new i = 1; i <= MaxClients; i++) {
+    bool admin_on_server = false;
+    for (int i = 1; i <= MaxClients; i++) {
         if (IsAdmin(i)) {
             admin_on_server = true;
             break;
