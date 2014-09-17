@@ -1,12 +1,14 @@
 Plugin(source='scripting/smart-player-reports.sp')
-Plugin(source='scripting/spr_steammessager.sp')
-Plugin(source='scripting/spr_example.sp')
+Plugin(source='scripting/spr_steammessager.sp', deps=['smart-player-reports'])
+Plugin(source='scripting/spr_example.sp', deps=['smart-player-reports'])
 
 Package(name='smart-player-reports',
         plugins=['smart-player-reports'],
+        configs=None,
 )
 
 Package(name='smart-player-reports-steam-messanger',
         extends=['smart-player-reports'],
         plugins=['spr_steammessager'],
+        configs='configs',
 )
