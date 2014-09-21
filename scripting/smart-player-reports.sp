@@ -41,6 +41,7 @@ char g_PlayerFields[][] = {
 };
 
 /** ConVar handles **/
+Handle g_hAllowPlayerReports = INVALID_HANDLE;
 Handle g_hDatabaseName = INVALID_HANDLE;
 Handle g_hDemoDuration = INVALID_HANDLE;
 Handle g_hReputationRecovery = INVALID_HANDLE;
@@ -139,13 +140,14 @@ public OnPluginStart() {
     LoadTranslations("common.phrases");
 
     /** ConVars **/
-    g_hDemoDuration = CreateConVar("sm_spr_demo_duration", "240.0", "Max length of a demo. The demo will be shorter if the map ends before this time runs out.", _, true, 30.0);
+    g_hAllowPlayerReports = CreateConVar("sm_spr_allow_player_reports", "1", "Whether players are allowed to use the report commands");
     g_hDatabaseName = CreateConVar("sm_spr_database_name", "smart_player_reports", "Database to use in configs/databases.cfg");
-    g_hWeightToDemo = CreateConVar("sm_spr_weight_to_demo", "10.0", "Report weight required to trigger a demo. Use a negative to never demo, 0.0 to always demo, higher values to require more weight.");
-    g_hWeightSourcePlugin = CreateConVar("sm_spr_weight_source_plugin_filename", "", "Other plugin filename that provides a WeightFunction(client, victim) function. You must include the .smx extension. Use empty string for no external plugin.");
+    g_hDemoDuration = CreateConVar("sm_spr_demo_duration", "240.0", "Max length of a demo. The demo will be shorter if the map ends before this time runs out.", _, true, 30.0);
     g_hReputationRecovery = CreateConVar("sm_spr_reputation_recovery_per_minute", "0.02", "Increase in player reputation per minute of playtime");
-    g_ReputationLossConstant = CreateConVar("sm_spr_reputation_loss_constant", "1.5", "Reputation loss = this constant / weight of report");
     g_hWeightDecay = CreateConVar("sm_spr_weight_decay_per_minute", "0.01", "Decrease in player weight per minute of playtime");
+    g_hWeightSourcePlugin = CreateConVar("sm_spr_weight_source_plugin_filename", "", "Other plugin filename that provides a WeightFunction(client, victim) function. You must include the .smx extension. Use empty string for no external plugin.");
+    g_hWeightToDemo = CreateConVar("sm_spr_weight_to_demo", "10.0", "Report weight required to trigger a demo. Use a negative to never demo, 0.0 to always demo, higher values to require more weight.");
+    g_ReputationLossConstant = CreateConVar("sm_spr_reputation_loss_constant", "1.5", "Reputation loss = this constant / weight of report");
 
     /** Config file **/
     AutoExecConfig(true, "smart-player-reports");
@@ -225,7 +227,7 @@ public Event_OnRoundPostStart(Handle event, const char name[], bool dontBroadcas
     }
 }
 
-public APLRes:AskPluginLoad2(Handle myself, bool late, char error[], err_max) {
+public APLRes AskPluginLoad2(Handle myself, bool late, char error[], err_max) {
     CreateNative("CreateServerReport", Native_CreateServerReport);
     RegPluginLibrary("smart-player-reports");
     return APLRes_Success;
@@ -381,6 +383,9 @@ public ReportReasonMenuHandler(Handle menu, MenuAction action, param1, param2) {
 }
 
 public void ReportWithWeight(int reporter, int victim, char reason[], float weight) {
+    if (GetConVarInt(g_hAllowPlayerReports) == 0 && reporter != 0)
+        return;
+
     PluginMessage(reporter, "Thank you for your report.");
     if (!CanReport(reporter, victim) || !IsPlayer(victim))
         return;

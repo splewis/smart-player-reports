@@ -17,7 +17,7 @@ Over time, the reputation for a player slowly rises and the weight held against 
 **Note: this plugin only supports CS:GO**
 
 While I consider it smart to do these and a step up from some other plugins, the main design decision is to **keep it simple, stupid**.
-As such this plugin is *very* lightweight in its implementation.
+As such this plugin is quite simple in its implementation.
 If you want a more complete reporting solution, check out [CallAdmin](https://forums.alliedmods.net/showthread.php?t=213670).
 I don't plan on duplicating its features.
 This plugin was meant to solve my personal problem of not being around on my servers, so a steam message about a hacker did me no good. I needed a demo.
