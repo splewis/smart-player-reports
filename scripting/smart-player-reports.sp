@@ -229,6 +229,9 @@ public Event_OnRoundPostStart(Handle event, const char name[], bool dontBroadcas
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char error[], err_max) {
     CreateNative("CreateServerReport", Native_CreateServerReport);
+    CreateNative("HasReportInfo", Native_HasReportInfo);
+    CreateNative("GetReputation", Native_GetReputation);
+    CreateNative("SetReputation", Native_SetReputation);
     RegPluginLibrary("smart-player-reports");
     return APLRes_Success;
 }
@@ -239,6 +242,24 @@ public Native_CreateServerReport(Handle plugin, numParams) {
     GetNativeString(2, reason, sizeof(reason));
     float weight = GetNativeCell(3);
     ReportWithWeight(0, client, reason, weight);
+    return true;
+}
+
+
+public Native_HasReportInfo(Handle plugin, numParams) {
+    int client = GetNativeCell(1);
+    return g_FetchedData[client];
+}
+
+public Native_GetReputation(Handle plugin, numParams) {
+    int client = GetNativeCell(1);
+    return _:g_Reputation[client];
+}
+
+public Native_SetReputation(Handle plugin, numParams) {
+    int client = GetNativeCell(1);
+    float reputation = Float:GetNativeCell(2);
+    g_Reputation[client] = reputation;
 }
 
 
@@ -249,7 +270,7 @@ public Native_CreateServerReport(Handle plugin, numParams) {
  *                                *
  **********************************/
 
-public Action:Timer_ReputationIncrease(Handle timer) {
+public Action Timer_ReputationIncrease(Handle timer) {
     float dr = GetConVarFloat(g_hReputationRecovery);
     float dw = GetConVarFloat(g_hWeightDecay);
     for (int i = 1; i <= MaxClients; i++) {
@@ -359,7 +380,7 @@ public ReportPlayerMenuHandler(Handle menu, MenuAction action, param1, param2) {
     }
 }
 
-public void ReportReasonMenu(client, victim) {
+public void ReportReasonMenu(int client, int victim) {
     if (!CanReport(client, victim))
         return;
 
@@ -563,7 +584,7 @@ public T_FetchValues(Handle owner, Handle hndl, const char error[], data) {
     }
 }
 
-public void DB_WritePlayerInfo(client) {
+public void DB_WritePlayerInfo(int client) {
     if (g_FetchedData[client]) {
         Format(g_sqlBuffer, sizeof(g_sqlBuffer), "UPDATE %s SET cumulative_weight = %f, reputation = %f WHERE steamid = '%s';",
                PLAYERS_TABLE_NAME, g_CumulativeWeight[client], g_Reputation[client], g_steamid[client]);

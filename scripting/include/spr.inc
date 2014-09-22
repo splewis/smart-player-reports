@@ -21,6 +21,9 @@ forward void OnDemoStop(int victim, char victim_name[], char victim_steamid[], c
 // Files a report on a player on behalf of the server.
 // This is useful for automatic-detection of offending players.
 native void CreateServerReport(int victim, char reason[], float weight);
+native bool HasReportInfo(int client);
+native float GetReputation(int client);
+native void SetReputation(int client, float reputation);
 
 public SharedPlugin:__pl_spr = {
     name = "smart-player-reports",
@@ -35,5 +38,8 @@ public SharedPlugin:__pl_spr = {
 #if !defined REQUIRE_PLUGIN
 public __pl_spr_SetNTVOptional() {
     MarkNativeAsOptional("CreateServerReport");
+    MarkNativeAsOptional("HasReportInfo");
+    MarkNativeAsOptional("GetReputation");
+    MarkNativeAsOptional("SetReputation");
 }
 #endif
