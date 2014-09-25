@@ -42,6 +42,7 @@ char g_PlayerFields[][] = {
 
 /** ConVar handles **/
 Handle g_hAllowPlayerReports = INVALID_HANDLE;
+Handle g_hAlwaysSaveRecords = INVALID_HANDLE;
 Handle g_hDatabaseName = INVALID_HANDLE;
 Handle g_hDemoDuration = INVALID_HANDLE;
 Handle g_hReputationRecovery = INVALID_HANDLE;
@@ -141,6 +142,7 @@ public OnPluginStart() {
 
     /** ConVars **/
     g_hAllowPlayerReports = CreateConVar("sm_spr_allow_player_reports", "1", "Whether players are allowed to use the report commands");
+    g_hAlwaysSaveRecords = CreateConVar("sm_always_save_record", "1", "If 0, reports that don't have a demo will not be sent to the database.");
     g_hDatabaseName = CreateConVar("sm_spr_database_name", "smart_player_reports", "Database to use in configs/databases.cfg");
     g_hDemoDuration = CreateConVar("sm_spr_demo_duration", "240.0", "Max length of a demo. The demo will be shorter if the map ends before this time runs out.", _, true, 30.0);
     g_hReputationRecovery = CreateConVar("sm_spr_reputation_recovery_per_minute", "0.02", "Increase in player reputation per minute of playtime");
@@ -450,8 +452,10 @@ public void ReportWithWeight(int reporter, int victim, char reason[], float weig
     Server_GetHostName(hostname, sizeof(hostname));
 
     g_CumulativeWeight[victim] += weight;
+    bool recordingDemo = false;
 
     if (!g_Recording && g_CumulativeWeight[victim] >= demo_weight && demo_weight >= 0.0) {
+        recordingDemo = true;
         g_CumulativeWeight[victim] -= demo_weight;
 
         g_Recording = true;
@@ -490,7 +494,7 @@ public void ReportWithWeight(int reporter, int victim, char reason[], float weig
         Format(g_DemoName, sizeof(g_DemoName), "");
     }
 
-    if (g_dbConnected) {
+    if (g_dbConnected && (GetConVarInt(g_hAlwaysSaveRecords) != 0 || recordingDemo)) {
         Format(g_sqlBuffer, sizeof(g_sqlBuffer), "INSERT IGNORE INTO %s (reporter_steamid,victim_name,victim_steamid,weight,server,description,demo) VALUES ('%s', '%s', '%s', %f, '%s', '%s', '%s');",
             REPORTS_TABLE_NAME,
             g_steamid[reporter],
