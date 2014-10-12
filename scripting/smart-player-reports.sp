@@ -23,19 +23,19 @@ char g_ReportStrings[][] = {
 char g_ReportFields[][] = {
     "id INT NOT NULL AUTO_INCREMENT",
     "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
-    "reporter_steamid varchar(64) NOT NULL DEFAULT ''",
-    "victim_name varchar(64) NOT NULL DEFAULT ''",
-    "victim_steamid varchar(64) NOT NULL DEFAULT ''",
+    "reporter_steamid varchar(72) NOT NULL DEFAULT ''",
+    "victim_name varchar(72) NOT NULL DEFAULT ''",
+    "victim_steamid varchar(72) NOT NULL DEFAULT ''",
     "weight Float NOT NULL DEFAULT 0.0",
     "description varchar(256) NOT NULL DEFAULT ''",
-    "server varchar(64) NOT NULL DEFAULT ''",
+    "server varchar(72) NOT NULL DEFAULT ''",
     "demo varchar(128) NOT NULL DEFAULT ''",
     "PRIMARY KEY (id)"
 };
 
 char g_PlayerFields[][] = {
-    "steamid VARCHAR(64) NOT NULL DEFAULT '' PRIMARY KEY",
-    "name VARCHAR(64) NOT NULL DEFAULT ''",
+    "steamid VARCHAR(72) NOT NULL DEFAULT '' PRIMARY KEY",
+    "name VARCHAR(72) NOT NULL DEFAULT ''",
     "reputation FLOAT NOT NULL DEFAULT 10.0",
     "cumulative_weight FLOAT NOT NULL DEFAULT 0.0"
 };
@@ -65,12 +65,12 @@ Handle db = INVALID_HANDLE;
 char g_DemoName[PLATFORM_MAX_PATH];
 char g_DemoReason[256];
 int g_DemoVictim = -1;
-char g_DemoVictimSteamID[64] = "";
-char g_DemoVictimName[64] = "";
+char g_DemoVictimSteamID[32] = "";
+char g_DemoVictimName[32] = "";
 bool g_Recording = false;
 bool g_StopRecordingSignal = false;
 
-char g_steamid[MAXPLAYERS+1][64];
+char g_steamid[MAXPLAYERS+1][32];
 bool g_FetchedData[MAXPLAYERS+1];
 float g_Reputation[MAXPLAYERS+1];
 float g_CumulativeWeight[MAXPLAYERS+1];
@@ -200,7 +200,7 @@ public OnMapEnd() {
 
 public OnClientPostAdminCheck(int client) {
     if (IsClientInGame(client) && !IsFakeClient(client) && g_dbConnected &&
-        GetClientAuthId(client, AuthId_Steam2, g_steamid[client], 64)) {
+        GetClientAuthId(client, AuthId_Steam2, g_steamid[client], 32)) {
 
         DB_AddPlayer(client);
     }
@@ -357,7 +357,7 @@ public void ReportPlayerMenu(int client) {
     int count = 0;
     for (int i = 1; i <= MaxClients; i++) {
         if (CanReport(client, i)) {
-            char display[64];
+            char display[32];
             Format(display, sizeof(display), "%N", i);
             AddMenuInt(menu, i, display);
             count++;
@@ -432,24 +432,19 @@ public void ReportWithWeight(int reporter, int victim, char reason[], float weig
     float demo_weight = GetConVarFloat(g_hWeightToDemo);
     float demo_length = GetConVarFloat(g_hDemoDuration);
 
-    char reporter_name[64];
-    char victim_name[64];
-    char victim_name_sanitized[64];
+    char reporter_name[32];
+    char victim_name[32];
+    char reporter_name_sanitized[72];
+    char victim_name_sanitized[72];
+
+    GetNames(reporter, reporter_name, reporter_name_sanitized);
+    GetNames(victim, victim_name, victim_name_sanitized);
+
     char ip[40];
     char server[64];
-    char hostname[128];
-
-    if (reporter == 0)
-        GetClientName(reporter, reporter_name, sizeof(reporter_name));
-    else
-        Server_GetHostName(reporter_name, sizeof(reporter_name));
-
-    GetClientName(victim, victim_name, sizeof(victim_name));
-    SQL_EscapeString(db, victim_name, victim_name_sanitized, sizeof(victim_name));
 
     Server_GetIPString(ip, sizeof(ip));
     Format(server, sizeof(server), "%s:%d", ip, Server_GetPort());
-    Server_GetHostName(hostname, sizeof(hostname));
 
     g_CumulativeWeight[victim] += weight;
     bool recordingDemo = false;
@@ -495,13 +490,13 @@ public void ReportWithWeight(int reporter, int victim, char reason[], float weig
     }
 
     if (g_dbConnected && (GetConVarInt(g_hAlwaysSaveRecords) != 0 || recordingDemo)) {
-        Format(g_sqlBuffer, sizeof(g_sqlBuffer), "INSERT IGNORE INTO %s (reporter_steamid,victim_name,victim_steamid,weight,server,description,demo) VALUES ('%s', '%s', '%s', %f, '%s', '%s', '%s');",
+        char buffer[1024];
+        Format(buffer, sizeof(buffer), "INSERT IGNORE INTO %s (reporter_steamid,victim_name,victim_steamid,weight,server,description,demo) VALUES ('%s', '%s', '%s', %f, '%s', '%s', '%s');",
             REPORTS_TABLE_NAME,
             g_steamid[reporter],
             victim_name_sanitized, g_steamid[victim],
             weight, server, reason, g_DemoName);
-
-        SQL_TQuery(db, SQLErrorCheckCallback, g_sqlBuffer);
+        SQL_TQuery(db, SQLErrorCheckCallback, buffer);
     }
 }
 
@@ -551,27 +546,47 @@ public void DB_AddPlayer(int client) {
         return;
     }
 
-    char name[64];
-    GetClientName(client, name, sizeof(name));
-    char sanitized_name[64];
-    SQL_EscapeString(db, name, sanitized_name, sizeof(name));
+    char name[32];
+    char sanitized_name[72];
+    GetNames(client, name, sanitized_name);
 
     // insert if not already in the table
-    Format(g_sqlBuffer, sizeof(g_sqlBuffer), "INSERT IGNORE INTO %s (steamid,name) VALUES ('%s', '%s');",
+    char buffer[1024];
+    Format(buffer, sizeof(buffer), "INSERT IGNORE INTO %s (steamid,name) VALUES ('%s', '%s');",
            PLAYERS_TABLE_NAME, g_steamid[client], sanitized_name);
-    SQL_TQuery(db, SQLErrorCheckCallback, g_sqlBuffer);
+    SQL_TQuery(db, SQLErrorCheckCallback, buffer);
 
-    // update the player name
-    Format(g_sqlBuffer, sizeof(g_sqlBuffer), "UPDATE %s SET name = '%s' WHERE steamid = '%s'",
-           PLAYERS_TABLE_NAME, sanitized_name, g_steamid[client]);
-    SQL_TQuery(db, SQLErrorCheckCallback, g_sqlBuffer);
-
-    Format(g_sqlBuffer, sizeof(g_sqlBuffer), "SELECT reputation, cumulative_weight FROM %s WHERE steamid = '%s';",
-           PLAYERS_TABLE_NAME, g_steamid[client]);
-    SQL_TQuery(db, T_FetchValues, g_sqlBuffer, client);
 }
 
-public T_FetchValues(Handle owner, Handle hndl, const char error[], data) {
+public Callback_Insert(Handle owner, Handle hndl, const char error[], int serial) {
+    if (!StrEqual("", error)) {
+        LogError("Last Connect SQL Error: %s", error);
+    } else {
+        int client = GetClientFromSerial(serial);
+        if (client == 0)
+            return;
+
+        int id = GetSteamAccountID(client);
+
+        if (id > 0) {
+            char name[32];
+            char sanitized_name[72];
+            GetNames(client, name, sanitized_name);
+
+
+            char buffer[1024];
+            Format(buffer, sizeof(buffer), "UPDATE %s SET name = '%s' WHERE steamid = '%s'",
+                   PLAYERS_TABLE_NAME, sanitized_name, g_steamid[client]);
+            SQL_TQuery(db, SQLErrorCheckCallback, buffer);
+
+            Format(buffer, sizeof(buffer), "SELECT reputation, cumulative_weight FROM %s WHERE steamid = '%s';",
+                   PLAYERS_TABLE_NAME, g_steamid[client]);
+            SQL_TQuery(db, Cabllback_FetchValues, buffer, client);
+        }
+    }
+}
+
+public Cabllback_FetchValues(Handle owner, Handle hndl, const char error[], data) {
     int client = data;
     g_FetchedData[client] = false;
     if (!IsPlayer(client))
@@ -590,9 +605,10 @@ public T_FetchValues(Handle owner, Handle hndl, const char error[], data) {
 
 public void DB_WritePlayerInfo(int client) {
     if (g_FetchedData[client]) {
-        Format(g_sqlBuffer, sizeof(g_sqlBuffer), "UPDATE %s SET cumulative_weight = %f, reputation = %f WHERE steamid = '%s';",
+        char buffer[256];
+        Format(buffer, sizeof(buffer), "UPDATE %s SET cumulative_weight = %f, reputation = %f WHERE steamid = '%s';",
                PLAYERS_TABLE_NAME, g_CumulativeWeight[client], g_Reputation[client], g_steamid[client]);
-        SQL_TQuery(db, SQLErrorCheckCallback, g_sqlBuffer);
+        SQL_TQuery(db, SQLErrorCheckCallback, buffer);
     }
 }
 
@@ -605,4 +621,22 @@ public SQLErrorCheckCallback(Handle owner, Handle hndl, const char error[], data
         g_dbConnected = false;
         LogError("Last Connect SQL Error: %s", error);
     }
+}
+
+public bool GetNames(int client, char name[32], char sanitized[72]) {
+    if (client == 0) {
+        Format(name, sizeof(name), "SERVER");
+    } else {
+        if (!GetClientName(client, name, sizeof(name))) {
+            LogError("Failed to get name for %L", client);
+            return false;
+        }
+    }
+
+    if (!SQL_EscapeString(db, name, sanitized, sizeof(sanitized))) {
+        LogError("Failed to get sanitized name for %L", client);
+        return false;
+    }
+
+    return true;
 }

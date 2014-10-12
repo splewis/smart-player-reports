@@ -5,8 +5,6 @@
 #define INTEGER_STRING_LENGTH 20 // max number of digits a 64-bit integer can use up as a string
                                  // this is for converting ints to strings when setting menu values/cookies
 
-char g_sqlBuffer[1024];
-
 /**
  * Function to identify if a client is valid and in game.
  */
@@ -75,13 +73,19 @@ stock void PluginMessage(int client, const char format[], any:...) {
         PrintToChat(client, formattedMsg);
 }
 
-stock void SQL_CreateTable(Handle dbConnection, char table_name[], char fields[][], int num_fields) {
-    Format(g_sqlBuffer, sizeof(g_sqlBuffer), "CREATE TABLE IF NOT EXISTS %s (", table_name);
+stock void SQL_CreateTable(Handle db_connection, const char table_name[], const char fields[][], int num_fields) {
+    char buffer[1024];
+    Format(buffer, sizeof(buffer), "CREATE TABLE IF NOT EXISTS %s (", table_name);
     for (int i = 0; i < num_fields; i++) {
-        StrCat(g_sqlBuffer, sizeof(g_sqlBuffer), fields[i]);
+        StrCat(buffer, sizeof(buffer), fields[i]);
         if (i != num_fields - 1)
-            StrCat(g_sqlBuffer, sizeof(g_sqlBuffer), ", ");
+            StrCat(buffer, sizeof(buffer), ", ");
     }
-    StrCat(g_sqlBuffer, sizeof(g_sqlBuffer), ");");
-    SQL_FastQuery(dbConnection, g_sqlBuffer);
+    StrCat(buffer, sizeof(buffer), ")");
+
+    if (!SQL_FastQuery(db_connection, buffer)) {
+        char err[255];
+        SQL_GetError(db_connection, err, sizeof(err));
+        LogError(err);
+    }
 }
