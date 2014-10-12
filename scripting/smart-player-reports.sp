@@ -554,7 +554,7 @@ public void DB_AddPlayer(int client) {
     char buffer[1024];
     Format(buffer, sizeof(buffer), "INSERT IGNORE INTO %s (steamid,name) VALUES ('%s', '%s');",
            PLAYERS_TABLE_NAME, g_steamid[client], sanitized_name);
-    SQL_TQuery(db, SQLErrorCheckCallback, buffer);
+    SQL_TQuery(db, Callback_Insert, buffer);
 
 }
 
