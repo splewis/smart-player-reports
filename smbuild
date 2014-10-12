@@ -1,6 +1,7 @@
 Plugin(source='scripting/smart-player-reports.sp')
-Plugin(source='scripting/spr_steammessager.sp', deps=['smart-player-reports'])
 Plugin(source='scripting/spr_example.sp', deps=['smart-player-reports'])
+Plugin(source='scripting/spr_repfunctions.sp', deps=['smart-player-reports'])
+Plugin(source='scripting/spr_steammessager.sp', deps=['smart-player-reports'])
 
 Package(name='smart-player-reports',
         plugins=['smart-player-reports'],
