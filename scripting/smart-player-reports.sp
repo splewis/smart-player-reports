@@ -554,7 +554,7 @@ public void DB_AddPlayer(int client) {
     char buffer[1024];
     Format(buffer, sizeof(buffer), "INSERT IGNORE INTO %s (steamid,name) VALUES ('%s', '%s');",
            PLAYERS_TABLE_NAME, g_steamid[client], sanitized_name);
-    SQL_TQuery(db, Callback_Insert, buffer);
+    SQL_TQuery(db, Callback_Insert, buffer, GetClientSerial(client));
 
 }
 
@@ -573,7 +573,6 @@ public Callback_Insert(Handle owner, Handle hndl, const char error[], int serial
             char sanitized_name[72];
             GetNames(client, name, sanitized_name);
 
-
             char buffer[1024];
             Format(buffer, sizeof(buffer), "UPDATE %s SET name = '%s' WHERE steamid = '%s'",
                    PLAYERS_TABLE_NAME, sanitized_name, g_steamid[client]);
@@ -581,13 +580,13 @@ public Callback_Insert(Handle owner, Handle hndl, const char error[], int serial
 
             Format(buffer, sizeof(buffer), "SELECT reputation, cumulative_weight FROM %s WHERE steamid = '%s';",
                    PLAYERS_TABLE_NAME, g_steamid[client]);
-            SQL_TQuery(db, Cabllback_FetchValues, buffer, client);
+            SQL_TQuery(db, Callback_FetchValues, buffer, serial);
         }
     }
 }
 
-public Cabllback_FetchValues(Handle owner, Handle hndl, const char error[], data) {
-    int client = data;
+public Callback_FetchValues(Handle owner, Handle hndl, const char error[], int serial) {
+    int client = GetClientFromSerial(serial);
     g_FetchedData[client] = false;
     if (!IsPlayer(client))
         return;
