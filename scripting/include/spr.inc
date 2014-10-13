@@ -24,6 +24,7 @@ native void CreateServerReport(int victim, char reason[], float weight);
 native bool HasReportInfo(int client);
 native float GetReputation(int client);
 native void SetReputation(int client, float reputation);
+native void ChangeReputation(int client, float delta);
 
 public SharedPlugin:__pl_spr = {
     name = "smart-player-reports",
@@ -41,5 +42,6 @@ public __pl_spr_SetNTVOptional() {
     MarkNativeAsOptional("HasReportInfo");
     MarkNativeAsOptional("GetReputation");
     MarkNativeAsOptional("SetReputation");
+    MarkNativeAsOptional("ChangeReputation");
 }
 #endif

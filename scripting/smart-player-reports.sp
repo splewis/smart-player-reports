@@ -234,6 +234,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char error[], err_max) {
     CreateNative("HasReportInfo", Native_HasReportInfo);
     CreateNative("GetReputation", Native_GetReputation);
     CreateNative("SetReputation", Native_SetReputation);
+    CreateNative("ChangeReputation", Native_ChangeReputation);
     RegPluginLibrary("smart-player-reports");
     return APLRes_Success;
 }
@@ -262,6 +263,12 @@ public Native_SetReputation(Handle plugin, numParams) {
     int client = GetNativeCell(1);
     float reputation = Float:GetNativeCell(2);
     g_Reputation[client] = reputation;
+}
+
+public Native_ChangeReputation(Handle plugin, numParams) {
+    int client = GetNativeCell(1);
+    float delta = Float:GetNativeCell(2);
+    g_Reputation[client] += delta;
 }
 
 
