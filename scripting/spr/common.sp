@@ -1,5 +1,4 @@
 #define PLUGIN_VERSION "0.1.0-dev"
-#define CHAT_PREFIX "[\x05SPR\x01] "
 #define REPORTS_TABLE_NAME "spr_reports"
 #define PLAYERS_TABLE_NAME "spr_players"
 #define INTEGER_STRING_LENGTH 20 // max number of digits a 64-bit integer can use up as a string
@@ -51,9 +50,7 @@ stock bool GetMenuBool(Handle menu, any:param2) {
 
 stock void PluginMessageToAll(const char format[], any:...) {
     char formattedMsg[1024] = CHAT_PREFIX;
-    char tmp[1024];
-    VFormat(tmp, sizeof(tmp), msg, 2);
-    StrCat(formattedMsg, sizeof(formattedMsg), tmp);
+    VFormat(formattedMsg, sizeof(formattedMsg), msg, 2);
 
     for (int i = 1; i <= MaxClients; i++) {
         if (IsValidClient(i) && !IsFakeClient(i)) {
@@ -63,11 +60,8 @@ stock void PluginMessageToAll(const char format[], any:...) {
 }
 
 stock void PluginMessage(int client, const char format[], any:...) {
-    char formattedMsg[1024] = CHAT_PREFIX;
-    char tmp[1024];
-    VFormat(tmp, sizeof(tmp), format, 3);
-
-    StrCat(formattedMsg, sizeof(formattedMsg), tmp);
+    char formattedMsg[1024];
+    VFormat(formattedMsg, sizeof(formattedMsg), format, 3);
 
     if (IsValidClient(client) && !IsFakeClient(client))
         PrintToChat(client, formattedMsg);
