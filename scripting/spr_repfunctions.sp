@@ -23,15 +23,15 @@ public Action Command_Rep(int client, args) {
     if (args >= 1 && GetCmdArg(1, arg1, sizeof(arg1))) {
         int target = FindTarget(client, arg1, true, false);
         if (target != -1) {
-            if (!HasReportInfo(target)) {
+            if (!SPR_HasReportInfo(target)) {
                 ReplyToCommand(client, "Unable to get reputation info for %N", target);
             } else {
                 if (args >= 2 && GetCmdArg(2, arg2, sizeof(arg2))) {
                     float dr = StringToFloat(arg2);
-                    ReplyToCommand(client, "Reputation for %N: %f + %f = %f", target, GetReputation(target), dr, GetReputation(target) + dr);
-                    SetReputation(target, GetReputation(target) + dr);
+                    ReplyToCommand(client, "Reputation for %N: %f + %f = %f", target, SPR_GetReputation(target), dr, SPR_GetReputation(target) + dr);
+                    SPR_ChangeReputation(target, dr);
                 } else {
-                    ReplyToCommand(client, "Reputation for %N: %f", target, GetReputation(target));
+                    ReplyToCommand(client, "Reputation for %N: %f", target, SPR_GetReputation(target));
                 }
             }
         }

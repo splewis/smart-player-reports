@@ -118,7 +118,7 @@ public float ReportWeightHandler(int client, int victim) {
 }
 
 public float DefaultReportWeight(int client, int victim) {
-    if (HasReportInfo(client) && GetReputation(client) < 0.0)
+    if (SPR_HasReportInfo(client) && SPR_GetReputation(client) < 0.0)
         return -1.0;
 
     return 1.0;
@@ -233,11 +233,12 @@ public Event_OnRoundPostStart(Handle event, const char name[], bool dontBroadcas
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char error[], err_max) {
-    CreateNative("CreateServerReport", Native_CreateServerReport);
-    CreateNative("HasReportInfo", Native_HasReportInfo);
-    CreateNative("GetReputation", Native_GetReputation);
-    CreateNative("SetReputation", Native_SetReputation);
-    CreateNative("ChangeReputation", Native_ChangeReputation);
+    CreateNative("SPR_CreateServerReport", Native_CreateServerReport);
+    CreateNative("SPR_HasReportInfo", Native_HasReportInfo);
+    CreateNative("SPR_GetReputation", Native_GetReputation);
+    CreateNative("SPR_SetReputation", Native_SetReputation);
+    CreateNative("SPR_ChangeReputation", Native_ChangeReputation);
+    CreateNative("SPR_RecordingTarget", Native_RecordingTarget);
     RegPluginLibrary("smart-player-reports");
     return APLRes_Success;
 }
@@ -247,7 +248,8 @@ public Native_CreateServerReport(Handle plugin, numParams) {
     char reason[256];
     GetNativeString(2, reason, sizeof(reason));
     float weight = GetNativeCell(3);
-    ReportWithWeight(0, client, reason, weight);
+    bool forceDemo = GetNativeCell(4);
+    ReportWithWeight(0, client, reason, weight, forceDemo);
     return true;
 }
 
@@ -274,6 +276,9 @@ public Native_ChangeReputation(Handle plugin, numParams) {
     g_Reputation[client] += delta;
 }
 
+public Native_RecordingTarget(Handle plugin, numParams) {
+    return g_DemoVictim;
+}
 
 
 /**********************************
@@ -415,7 +420,7 @@ public ReportReasonMenuHandler(Handle menu, MenuAction action, param1, param2) {
     }
 }
 
-public void ReportWithWeight(int reporter, int victim, char reason[], float weight) {
+public void ReportWithWeight(int reporter, int victim, char reason[], float weight, bool forceDemo) {
     if (GetConVarInt(g_hAllowPlayerReports) == 0 && reporter != 0)
         return;
 
@@ -457,7 +462,7 @@ public void ReportWithWeight(int reporter, int victim, char reason[], float weig
     g_CumulativeWeight[victim] += weight;
     bool recordingDemo = false;
 
-    if (!g_Recording && g_CumulativeWeight[victim] >= demo_weight && demo_weight >= 0.0) {
+    if (!g_Recording && (g_CumulativeWeight[victim] >= demo_weight || forceDemo) && demo_weight >= 0.0) {
         recordingDemo = true;
         g_CumulativeWeight[victim] -= demo_weight;
 
@@ -509,7 +514,7 @@ public void ReportWithWeight(int reporter, int victim, char reason[], float weig
 }
 
 public void Report(int reporter, int victim, int reasonIndex) {
-    ReportWithWeight(reporter, victim, g_ReportStrings[reasonIndex], ReportWeightHandler(reporter, victim));
+    ReportWithWeight(reporter, victim, g_ReportStrings[reasonIndex], ReportWeightHandler(reporter, victim), false);
 }
 
 public Action Timer_StopDemo(Handle timer) {

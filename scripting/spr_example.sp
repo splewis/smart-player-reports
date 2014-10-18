@@ -29,8 +29,8 @@ public float ReportWeight(int client, int victim) {
     float weight = 1.0;
 
     // Might want to ignore people that make too many reports!
-    if (GetReputation(client) < 0.0)
-        return -1.0;
+    if (SPR_GetReputation(client) < 0.0)
+        return SPR_IGNORE_REPORT;
 
     // Count admins more heavily
     if (IsAdmin(client))
@@ -50,14 +50,14 @@ public float ReportWeight(int client, int victim) {
     return weight;
 }
 
-public OnReportFiled(int reporter, int victim, float weight, char reason[]) {
+public OnReportFiled(int reporter, int victim, float weight, const char reason[]) {
     PrintToServer("%N reported %N with weight %f", reporter, victim, weight);
 }
 
-public OnDemoStart(int victim, char victim_name[], char victim_steamid[], char reason[], char demo_name[]) {
+public OnDemoStart(int victim, const char victim_name[], const char victim_steamid[], const char reason[], const char demo_name[]) {
     PrintToServer("Started recording %s", demo_name);
 }
 
-public OnDemoStop(int victim, char victim_name[], char victim_steamid[], char reason[], char demo_name[]) {
+public OnDemoStop(int victim, const char victim_name[], const char victim_steamid[], const char reason[], const char demo_name[]) {
     PrintToServer("Finished recording %s", demo_name);
 }
