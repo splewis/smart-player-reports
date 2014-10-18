@@ -118,6 +118,9 @@ public float ReportWeightHandler(int client, int victim) {
 }
 
 public float DefaultReportWeight(int client, int victim) {
+    if (HasReportInfo(client) && GetReputation(client) < 0.0)
+        return -1.0;
+
     return 1.0;
 }
 
@@ -432,8 +435,6 @@ public void ReportWithWeight(int reporter, int victim, char reason[], float weig
 
     if (reporter > 0) {
         g_Reputation[reporter] -= GetConVarFloat(g_ReputationLossConstant) * weight;
-        if (g_Reputation[reporter] < 0.0)
-            return;
     }
 
     float demo_weight = GetConVarFloat(g_hWeightToDemo);

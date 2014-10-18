@@ -28,6 +28,10 @@ public bool IsAdmin(client) {
 public float ReportWeight(int client, int victim) {
     float weight = 1.0;
 
+    // Might want to ignore people that make too many reports!
+    if (GetReputation(client) < 0.0)
+        return -1.0;
+
     // Count admins more heavily
     if (IsAdmin(client))
         weight += 2.0;
@@ -42,11 +46,6 @@ public float ReportWeight(int client, int victim) {
     }
     if (!admin_on_server)
         weight += 2.0;
-
-    // You could even count reporters with a short steam ID more!
-    char steamid[64];
-    if (GetClientAuthString(client, steamid, sizeof(steamid)) && strlen(steamid) < 10)
-        weight += 1.0;
 
     return weight;
 }
