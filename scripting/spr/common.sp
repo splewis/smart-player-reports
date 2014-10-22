@@ -15,6 +15,10 @@ stock bool IsPlayer(int client) {
     return IsValidClient(client) && !IsFakeClient(client);
 }
 
+stock bool IsPlayerAdmin(int client) {
+    return IsPlayer(client) && GetAdminFlag(GetUserAdmin(client), Admin_Kick);
+}
+
 /**
  * Adds an integer to a menu as a string choice.
  */
@@ -49,11 +53,22 @@ stock bool GetMenuBool(Handle menu, any:param2) {
 }
 
 stock void PluginMessageToAll(const char format[], any:...) {
-    char formattedMsg[1024] = CHAT_PREFIX;
-    VFormat(formattedMsg, sizeof(formattedMsg), msg, 2);
+    char formattedMsg[1024];
+    VFormat(formattedMsg, sizeof(formattedMsg), format, 2);
 
     for (int i = 1; i <= MaxClients; i++) {
-        if (IsValidClient(i) && !IsFakeClient(i)) {
+        if (IsPlayer(i)) {
+            PrintToChat(i, formattedMsg);
+        }
+    }
+}
+
+stock void PluginMessageToAdmins(const char format[], any:...) {
+    char formattedMsg[1024];
+    VFormat(formattedMsg, sizeof(formattedMsg), format, 2);
+
+    for (int i = 1; i <= MaxClients; i++) {
+        if (IsPlayerAdmin(i)) {
             PrintToChat(i, formattedMsg);
         }
     }

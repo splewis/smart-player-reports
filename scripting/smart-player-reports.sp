@@ -483,6 +483,8 @@ public void ReportWithWeight(int reporter, int victim, char reason[], float weig
         ServerCommand("tv_record \"%s\"", g_DemoName);
         CreateTimer(demo_length, Timer_StopDemo, _, TIMER_FLAG_NO_MAPCHANGE);
 
+        PluginMessageToAdmins("A player-report demo for %L is now recording. reason: %s", victim, reason);
+
         // reformat with .dem extension for storage
         Format(g_DemoName, sizeof(g_DemoName), "report_%s_%s.dem", steamid_no_colons, formattedTime);
 
