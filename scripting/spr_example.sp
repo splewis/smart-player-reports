@@ -6,7 +6,7 @@
 // should be.
 
 public Plugin:myinfo = {
-    name = "[SPR] example client plugin",
+    name = "Smart player reports: example weight function",
     author = "splewis",
     description = "SPR example plugin",
     version = "1.0.0",

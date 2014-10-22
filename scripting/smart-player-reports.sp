@@ -133,7 +133,7 @@ public float DefaultReportWeight(int client, int victim) {
  ***********************/
 
 public Plugin:myinfo = {
-    name = "[SPR] Smart player reports base plugin",
+    name = "Smart player reports",
     author = "splewis",
     description = "Enhanced tools for player reports",
     version = PLUGIN_VERSION,
@@ -629,8 +629,6 @@ public void DB_WritePlayerInfo(int client) {
  */
 public SQLErrorCheckCallback(Handle owner, Handle hndl, const char error[], data) {
     if (!StrEqual("", error)) {
-        db = INVALID_HANDLE;
-        g_dbConnected = false;
         LogError("Last Connect SQL Error: %s", error);
     }
 }

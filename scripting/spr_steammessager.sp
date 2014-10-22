@@ -8,7 +8,7 @@ char g_BotUser[64] = "";
 char g_BotPassword[64] = "";
 
 public Plugin:myinfo = {
-    name = "[SPR] Steam messager",
+    name = "Smart player reports: steam messanger",
     author = "splewis",
     description = "Sends a steam message to a list of clients when a demo is started",
     version = PLUGIN_VERSION,

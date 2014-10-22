@@ -135,9 +135,9 @@ mysql> describe spr_reports;
 +------------------+--------------+------+-----+-------------------+----------------+
 | id               | int(11)      | NO   | PRI | NULL              | auto_increment |
 | timestamp        | timestamp    | NO   |     | CURRENT_TIMESTAMP |                |
-| reporter_steamid | varchar(64)  | NO   |     |                   |                |
-| victim_name      | varchar(64)  | NO   |     |                   |                |
-| victim_steamid   | varchar(64)  | NO   |     |                   |                |
+| reporter_steamid | varchar(72)  | NO   |     |                   |                |
+| victim_name      | varchar(72)  | NO   |     |                   |                |
+| victim_steamid   | varchar(72)  | NO   |     |                   |                |
 | weight           | float        | NO   |     | 0                 |                |
 | description      | varchar(256) | NO   |     |                   |                |
 | server           | varchar(64)  | NO   |     |                   |                |
@@ -148,8 +148,8 @@ mysql> describe spr_players;
 +-------------------+-------------+------+-----+---------+-------+
 | Field             | Type        | Null | Key | Default | Extra |
 +-------------------+-------------+------+-----+---------+-------+
-| steamid           | varchar(64) | NO   | PRI |         |       |
-| name              | varchar(64) | NO   |     |         |       |
+| steamid           | varchar(72) | NO   | PRI |         |       |
+| name              | varchar(72) | NO   |     |         |       |
 | reputation        | float       | NO   |     | 10      |       |
 | cumulative_weight | float       | NO   |     | 0       |       |
 +-------------------+-------------+------+-----+---------+-------+
