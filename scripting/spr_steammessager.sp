@@ -20,7 +20,7 @@ public OnMapStart() {
     ReadConfig();
 }
 
-public OnDemoStart(int victim, const char victim_name[], const char victim_steamid[], const char reason[], const char demo_name[]) {
+public SPR_OnDemoStart(int victim, const char victim_name[], const char victim_steamid[], const char reason[], const char demo_name[]) {
     char hostname[128];
     Server_GetHostName(hostname, sizeof(hostname));
     char msg[4196];

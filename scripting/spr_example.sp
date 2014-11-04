@@ -50,14 +50,14 @@ public float ReportWeight(int client, int victim) {
     return weight;
 }
 
-public OnReportFiled(int reporter, int victim, float weight, const char reason[]) {
+public SPR_OnReportFiled(int reporter, int victim, float weight, const char reason[]) {
     PrintToServer("%N reported %N with weight %f", reporter, victim, weight);
 }
 
-public OnDemoStart(int victim, const char victim_name[], const char victim_steamid[], const char reason[], const char demo_name[]) {
+public SPR_OnDemoStart(int victim, const char victim_name[], const char victim_steamid[], const char reason[], const char demo_name[]) {
     PrintToServer("Started recording %s", demo_name);
 }
 
-public OnDemoStop(int victim, const char victim_name[], const char victim_steamid[], const char reason[], const char demo_name[]) {
+public SPR_OnDemoStop(int victim, const char victim_name[], const char victim_steamid[], const char reason[], const char demo_name[]) {
     PrintToServer("Finished recording %s", demo_name);
 }

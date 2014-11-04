@@ -1,24 +1,25 @@
 #if defined _spr_included
   #endinput
 #endif
-#define _spr_included
+#define __spr_included__
 
 #define SPR_IGNORE_REPORT -1.0
 
 // Function for calculating weight of a report.
+// Not an actual forward, just here for documentation/function signature reasons.
 forward float ReportWeight(int client, int victim);
 
 // Called whenever a non-negative weight report is filed.
-forward void OnReportFiled(int reporter, int victim, float weight, const char reason[]);
+forward void SPR_OnReportFiled(int reporter, int victim, float weight, const char reason[]);
 
 // Called whenever a demo starts recording.
-forward void OnDemoStart(int victim, const char victim_name[], const char victim_steamid[], const char reason[], const char demo_name[]);
+forward void SPR_OnDemoStart(int victim, const char victim_name[], const char victim_steamid[], const char reason[], const char demo_name[]);
 
 // Called whenever a demo is finished recording.
 // Realize that the victim may have left in the time since the demo started,
 // so the victim client index may be invalid now. If the victim left,
 // -1 will be passed for their client index.
-forward void OnDemoStop(int victim, const char victim_name[], const char victim_steamid[], const char reason[], const char demo_name[]);
+forward void SPR_OnDemoStop(int victim, const char victim_name[], const char victim_steamid[], const char reason[], const char demo_name[]);
 
 // Files a report on a player on behalf of the server.
 // This is useful for automatic-detection of offending players.

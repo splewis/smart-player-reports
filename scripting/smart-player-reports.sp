@@ -171,9 +171,9 @@ public OnPluginStart() {
     HookEvent("round_poststart", Event_OnRoundPostStart);
 
     /** Forwards **/
-    g_hOnReportFiled = CreateGlobalForward("OnReportFiled", ET_Ignore, Param_Cell, Param_Cell, Param_Float, Param_String);
-    g_hOnDemoStart = CreateGlobalForward("OnDemoStart", ET_Ignore, Param_Cell, Param_String, Param_String, Param_String, Param_String);
-    g_hOnDemoStop = CreateGlobalForward("OnDemoStop", ET_Ignore, Param_Cell, Param_String, Param_String, Param_String, Param_String);
+    g_hOnReportFiled = CreateGlobalForward("SPR_OnReportFiled", ET_Ignore, Param_Cell, Param_Cell, Param_Float, Param_String);
+    g_hOnDemoStart = CreateGlobalForward("SPR_OnDemoStart", ET_Ignore, Param_Cell, Param_String, Param_String, Param_String, Param_String);
+    g_hOnDemoStop = CreateGlobalForward("SPR_OnDemoStop", ET_Ignore, Param_Cell, Param_String, Param_String, Param_String, Param_String);
 
     CreateTimer(60.0, Timer_ReputationIncrease, _, TIMER_REPEAT);
 
@@ -541,9 +541,9 @@ public void DB_Connect() {
     char dbName[128];
     GetConVarString(g_hDatabaseName, dbName, sizeof(dbName));
 
+    g_dbConnected = false;
     db = SQL_Connect(dbName, true, error, sizeof(error));
     if (db == INVALID_HANDLE) {
-        g_dbConnected = false;
         LogError("Could not connect: %s", error);
     } else {
         SQL_LockDatabase(db);
