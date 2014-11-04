@@ -1,4 +1,4 @@
-#if defined _spr_included
+#if defined __spr_included__
   #endinput
 #endif
 #define __spr_included__
