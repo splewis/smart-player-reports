@@ -22,7 +22,7 @@ stock bool IsPlayerAdmin(int client) {
 /**
  * Adds an integer to a menu as a string choice.
  */
-stock void AddMenuInt(Handle menu, any:value, String:display[]) {
+stock void AddMenuInt(Handle menu, int value, const char[] display) {
     char buffer[INTEGER_STRING_LENGTH];
     IntToString(value, buffer, sizeof(buffer));
     AddMenuItem(menu, buffer, display);
@@ -40,7 +40,7 @@ stock int GetMenuInt(Handle menu, any:param2) {
 /**
  * Adds a boolean to a menu as a string choice.
  */
-stock void AddMenuBool(Handle menu, bool value, char display[]) {
+stock void AddMenuBool(Handle menu, bool value, const char[] display) {
     int convertedInt = value ? 1 : 0;
     AddMenuInt(menu, convertedInt, display);
 }
@@ -52,7 +52,7 @@ stock bool GetMenuBool(Handle menu, any:param2) {
     return GetMenuInt(menu, param2) != 0;
 }
 
-stock void PluginMessageToAll(const char format[], any:...) {
+stock void PluginMessageToAll(const char[] format, any:...) {
     char formattedMsg[1024];
     VFormat(formattedMsg, sizeof(formattedMsg), format, 2);
 
@@ -63,7 +63,7 @@ stock void PluginMessageToAll(const char format[], any:...) {
     }
 }
 
-stock void PluginMessageToAdmins(const char format[], any:...) {
+stock void PluginMessageToAdmins(const char[] format, any:...) {
     char formattedMsg[1024];
     VFormat(formattedMsg, sizeof(formattedMsg), format, 2);
 
@@ -74,7 +74,7 @@ stock void PluginMessageToAdmins(const char format[], any:...) {
     }
 }
 
-stock void PluginMessage(int client, const char format[], any:...) {
+stock void PluginMessage(int client, const char[] format, any:...) {
     char formattedMsg[1024];
     VFormat(formattedMsg, sizeof(formattedMsg), format, 3);
 
@@ -82,7 +82,7 @@ stock void PluginMessage(int client, const char format[], any:...) {
         PrintToChat(client, formattedMsg);
 }
 
-stock void SQL_CreateTable(Handle db_connection, const char table_name[], const char fields[][], int num_fields) {
+stock void SQL_CreateTable(Handle db_connection, const char[] table_name, const char[][] fields, int num_fields) {
     char buffer[1024];
     Format(buffer, sizeof(buffer), "CREATE TABLE IF NOT EXISTS %s (", table_name);
     for (int i = 0; i < num_fields; i++) {

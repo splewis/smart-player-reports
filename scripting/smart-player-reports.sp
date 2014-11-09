@@ -217,7 +217,7 @@ public OnClientDisconnect(int client) {
         g_DemoVictim = -1;
 }
 
-public Event_OnRoundPostStart(Handle event, const char name[], bool dontBroadcast) {
+public Event_OnRoundPostStart(Handle event, const char[] name, bool dontBroadcast) {
     if (g_StopRecordingSignal) {
         g_Recording = false;
         g_StopRecordingSignal = false;
@@ -232,7 +232,7 @@ public Event_OnRoundPostStart(Handle event, const char name[], bool dontBroadcas
     }
 }
 
-public APLRes AskPluginLoad2(Handle myself, bool late, char error[], err_max) {
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, err_max) {
     CreateNative("SPR_CreateServerReport", Native_CreateServerReport);
     CreateNative("SPR_HasReportInfo", Native_HasReportInfo);
     CreateNative("SPR_GetReputation", Native_GetReputation);
@@ -309,7 +309,7 @@ public Action Timer_ReputationIncrease(Handle timer) {
 /**
  * Hook for player chat actions.
  */
-public Action Command_Say(int client, const char command[], int argc) {
+public Action Command_Say(int client, const char[] command, int argc) {
     char cmd[192];
 
     if (GetCmdArgString(cmd, sizeof(cmd)) < 1) {
@@ -420,7 +420,7 @@ public ReportReasonMenuHandler(Handle menu, MenuAction action, param1, param2) {
     }
 }
 
-public void ReportWithWeight(int reporter, int victim, char reason[], float weight, bool forceDemo) {
+public void ReportWithWeight(int reporter, int victim, const char[] reason, float weight, bool forceDemo) {
     if (GetConVarInt(g_hAllowPlayerReports) == 0 && reporter != 0)
         return;
 
@@ -573,7 +573,7 @@ public void DB_AddPlayer(int client) {
 
 }
 
-public Callback_Insert(Handle owner, Handle hndl, const char error[], int serial) {
+public Callback_Insert(Handle owner, Handle hndl, const char[] error, int serial) {
     if (!StrEqual("", error)) {
         LogError("Last Connect SQL Error: %s", error);
     } else {
@@ -600,7 +600,7 @@ public Callback_Insert(Handle owner, Handle hndl, const char error[], int serial
     }
 }
 
-public Callback_FetchValues(Handle owner, Handle hndl, const char error[], int serial) {
+public Callback_FetchValues(Handle owner, Handle hndl, const char[] error, int serial) {
     int client = GetClientFromSerial(serial);
     g_FetchedData[client] = false;
     if (!IsPlayer(client))
@@ -629,7 +629,7 @@ public void DB_WritePlayerInfo(int client) {
 /**
  * Generic SQL threaded query error callback.
  */
-public SQLErrorCheckCallback(Handle owner, Handle hndl, const char error[], data) {
+public SQLErrorCheckCallback(Handle owner, Handle hndl, const char[] error, data) {
     if (!StrEqual("", error)) {
         LogError("Last Connect SQL Error: %s", error);
     }
