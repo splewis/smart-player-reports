@@ -21,6 +21,7 @@ before_script:
     - cd include
     - git clone https://github.com/bcserv/smlib
     - cp -r smlib/scripting/include/* .
+    - wget https://github.com/popoklopsi/MessageBot/blob/master/messagebot.inc
     - cd ../../../..
 
 script:
