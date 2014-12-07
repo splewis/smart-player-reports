@@ -1,7 +1,7 @@
-#if defined __spr_included__
+#if defined _spr_included
   #endinput
 #endif
-#define __spr_included__
+#define _spr_included
 
 #define SPR_IGNORE_REPORT -1.0
 

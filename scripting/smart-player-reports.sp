@@ -505,12 +505,16 @@ public void ReportWithWeight(int reporter, int victim, const char[] reason, floa
     }
 
     if (g_dbConnected && (GetConVarInt(g_hAlwaysSaveRecords) != 0 || recordingDemo)) {
-        char buffer[1024];
+
+        char reason_sanitized[1024];
+        SQL_EscapeString(db, reason, reason_sanitized, sizeof(reason_sanitized));
+
+        char buffer[2048];
         Format(buffer, sizeof(buffer), "INSERT IGNORE INTO %s (reporter_steamid,victim_name,victim_steamid,weight,server,description,demo) VALUES ('%s', '%s', '%s', %f, '%s', '%s', '%s');",
             REPORTS_TABLE_NAME,
             g_steamid[reporter],
             victim_name_sanitized, g_steamid[victim],
-            weight, server, reason, g_DemoName);
+            weight, server, reason_sanitized, g_DemoName);
         SQL_TQuery(db, SQLErrorCheckCallback, buffer);
     }
 }
@@ -575,7 +579,7 @@ public void DB_AddPlayer(int client) {
 
 public Callback_Insert(Handle owner, Handle hndl, const char[] error, int serial) {
     if (!StrEqual("", error)) {
-        LogError("Last Connect SQL Error: %s", error);
+        LogError("Insert query error: %s", error);
     } else {
         int client = GetClientFromSerial(serial);
         if (client == 0)
@@ -613,7 +617,7 @@ public Callback_FetchValues(Handle owner, Handle hndl, const char[] error, int s
         g_CumulativeWeight[client] = SQL_FetchFloat(hndl, 1);
         g_FetchedData[client] = true;
     } else {
-        LogError("Couldnt' get results for %N", client);
+        LogError("Couldn't get results for %L", client);
     }
 }
 
