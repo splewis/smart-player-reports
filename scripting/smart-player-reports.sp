@@ -140,7 +140,7 @@ public Plugin:myinfo = {
     url = "https://github.com/splewis/smart-player-reports"
 };
 
-public OnPluginStart() {
+public void OnPluginStart() {
     LoadTranslations("common.phrases");
 
     /** ConVars **/
@@ -179,7 +179,7 @@ public OnPluginStart() {
 
 }
 
-public OnMapStart() {
+public void OnMapStart() {
     g_steamid[0] = "SERVER";
     g_Recording = false;
     g_StopRecordingSignal = false;
@@ -188,7 +188,7 @@ public OnMapStart() {
     }
 }
 
-public OnMapEnd() {
+public void OnMapEnd() {
     if (g_Recording) {
         g_Recording = false;
         Call_StartForward(g_hOnDemoStop);
@@ -201,7 +201,7 @@ public OnMapEnd() {
     }
 }
 
-public OnClientPostAdminCheck(int client) {
+public void OnClientPostAdminCheck(int client) {
     if (IsClientInGame(client) && !IsFakeClient(client) && g_dbConnected &&
         GetClientAuthId(client, AuthId_Steam2, g_steamid[client], 32)) {
 
@@ -209,7 +209,7 @@ public OnClientPostAdminCheck(int client) {
     }
 }
 
-public OnClientDisconnect(int client) {
+public void OnClientDisconnect(int client) {
     if (db != INVALID_HANDLE)
         DB_WritePlayerInfo(client);
     g_FetchedData[client] = false;
@@ -217,7 +217,7 @@ public OnClientDisconnect(int client) {
         g_DemoVictim = -1;
 }
 
-public Event_OnRoundPostStart(Handle event, const char[] name, bool dontBroadcast) {
+public Action Event_OnRoundPostStart(Handle event, const char[] name, bool dontBroadcast) {
     if (g_StopRecordingSignal) {
         g_Recording = false;
         g_StopRecordingSignal = false;
@@ -232,7 +232,7 @@ public Event_OnRoundPostStart(Handle event, const char[] name, bool dontBroadcas
     }
 }
 
-public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, err_max) {
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max) {
     CreateNative("SPR_CreateServerReport", Native_CreateServerReport);
     CreateNative("SPR_HasReportInfo", Native_HasReportInfo);
     CreateNative("SPR_GetReputation", Native_GetReputation);
@@ -243,7 +243,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, err_max) {
     return APLRes_Success;
 }
 
-public Native_CreateServerReport(Handle plugin, numParams) {
+public int Native_CreateServerReport(Handle plugin, int numParams) {
     int client = GetNativeCell(1);
     char reason[256];
     GetNativeString(2, reason, sizeof(reason));
@@ -254,29 +254,29 @@ public Native_CreateServerReport(Handle plugin, numParams) {
 }
 
 
-public Native_HasReportInfo(Handle plugin, numParams) {
+public int Native_HasReportInfo(Handle plugin, int numParams) {
     int client = GetNativeCell(1);
     return g_FetchedData[client];
 }
 
-public Native_GetReputation(Handle plugin, numParams) {
+public int Native_GetReputation(Handle plugin, int numParams) {
     int client = GetNativeCell(1);
     return _:g_Reputation[client];
 }
 
-public Native_SetReputation(Handle plugin, numParams) {
+public int Native_SetReputation(Handle plugin, int numParams) {
     int client = GetNativeCell(1);
     float reputation = Float:GetNativeCell(2);
     g_Reputation[client] = reputation;
 }
 
-public Native_ChangeReputation(Handle plugin, numParams) {
+public int Native_ChangeReputation(Handle plugin, int numParams) {
     int client = GetNativeCell(1);
     float delta = Float:GetNativeCell(2);
     g_Reputation[client] += delta;
 }
 
-public Native_RecordingTarget(Handle plugin, numParams) {
+public int Native_RecordingTarget(Handle plugin, int numParams) {
     return g_DemoVictim;
 }
 
@@ -353,7 +353,7 @@ public Action Command_Say(int client, const char[] command, int argc) {
     }
 }
 
-public Action Command_Report(int client, args) {
+public Action Command_Report(int client, int args) {
     char arg1[32];
     if (args >= 1 && GetCmdArg(1, arg1, sizeof(arg1))) {
         int target = FindTarget(client, arg1, true, false);
@@ -387,7 +387,7 @@ public void ReportPlayerMenu(int client) {
     }
 }
 
-public ReportPlayerMenuHandler(Handle menu, MenuAction action, param1, param2) {
+public int ReportPlayerMenuHandler(Handle menu, MenuAction action, int param1, int param2) {
     if (action == MenuAction_Select) {
         int client = param1;
         int choice = GetMenuInt(menu, param2);
@@ -409,7 +409,7 @@ public void ReportReasonMenu(int client, int victim) {
     DisplayMenu(menu, client, 15);
 }
 
-public ReportReasonMenuHandler(Handle menu, MenuAction action, param1, param2) {
+public int ReportReasonMenuHandler(Handle menu, MenuAction action, int param1, int param2) {
     if (action == MenuAction_Select) {
         int client = param1;
         int reasonIndex = GetMenuInt(menu, param2);
@@ -577,7 +577,7 @@ public void DB_AddPlayer(int client) {
 
 }
 
-public Callback_Insert(Handle owner, Handle hndl, const char[] error, int serial) {
+public void Callback_Insert(Handle owner, Handle hndl, const char[] error, int serial) {
     if (!StrEqual("", error)) {
         LogError("Insert query error: %s", error);
     } else {
@@ -604,7 +604,7 @@ public Callback_Insert(Handle owner, Handle hndl, const char[] error, int serial
     }
 }
 
-public Callback_FetchValues(Handle owner, Handle hndl, const char[] error, int serial) {
+public void Callback_FetchValues(Handle owner, Handle hndl, const char[] error, int serial) {
     int client = GetClientFromSerial(serial);
     g_FetchedData[client] = false;
     if (!IsPlayer(client))
@@ -633,9 +633,9 @@ public void DB_WritePlayerInfo(int client) {
 /**
  * Generic SQL threaded query error callback.
  */
-public SQLErrorCheckCallback(Handle owner, Handle hndl, const char[] error, data) {
+public void SQLErrorCheckCallback(Handle owner, Handle hndl, const char[] error, int data) {
     if (!StrEqual("", error)) {
-        LogError("Last Connect SQL Error: %s", error);
+        LogError("Last SQL Error: %s", error);
     }
 }
 
