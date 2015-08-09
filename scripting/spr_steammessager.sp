@@ -4,10 +4,13 @@
 #include "include/spr.inc"
 #include "spr/common.sp"
 
+#pragma semicolon 1
+#pragma newdecls required
+
 char g_BotUser[64] = "";
 char g_BotPassword[64] = "";
 
-public Plugin:myinfo = {
+public Plugin myinfo = {
     name = "Smart player reports: steam messanger",
     author = "splewis",
     description = "Sends a steam message to a list of clients when a demo is started",
@@ -15,12 +18,12 @@ public Plugin:myinfo = {
     url = "https://github.com/splewis/smart-player-reports"
 };
 
-public OnMapStart() {
+public void OnMapStart() {
     MessageBot_ClearRecipients();
     ReadConfig();
 }
 
-public SPR_OnDemoStart(int victim, const char[] victim_name, const char[] victim_steamid, const char[] reason, const char[] demo_name) {
+public void SPR_OnDemoStart(int victim, const char[] victim_name, const char[] victim_steamid, const char[] reason, const char[] demo_name) {
     char hostname[128];
     Server_GetHostName(hostname, sizeof(hostname));
     char msg[4196];
@@ -31,7 +34,7 @@ public SPR_OnDemoStart(int victim, const char[] victim_name, const char[] victim
     MessageBot_SendMessage(Message_CallBack, msg);
 }
 
-public Message_CallBack(MessageBotResult:result, error) {
+public int Message_CallBack(MessageBotResult result, int error) {
     if (result != RESULT_NO_ERROR) {
         LogError("MessageBot got an error when using bot user: %s", g_BotUser);
         LogError("result code = %d", result);

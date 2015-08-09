@@ -1,9 +1,10 @@
-#pragma semicolon 1
 #include <sourcemod>
 #include <smlib>
 #include "spr/common.sp"
 #include "include/spr.inc"
 
+#pragma semicolon 1
+#pragma newdecls required
 
 
 /***********************
@@ -17,7 +18,7 @@ char g_ReportStrings[][] = {
     "Abusive voice chat",
     "Abusive text chat",
     "Hacking",
-    "Griefing"
+    "Griefing",
 };
 
 char g_ReportFields[][] = {
@@ -30,14 +31,14 @@ char g_ReportFields[][] = {
     "description varchar(256) NOT NULL DEFAULT ''",
     "server varchar(72) NOT NULL DEFAULT ''",
     "demo varchar(128) NOT NULL DEFAULT ''",
-    "PRIMARY KEY (id)"
+    "PRIMARY KEY (id)",
 };
 
 char g_PlayerFields[][] = {
     "steamid VARCHAR(72) NOT NULL DEFAULT '' PRIMARY KEY",
     "name VARCHAR(72) NOT NULL DEFAULT ''",
     "reputation FLOAT NOT NULL DEFAULT 10.0",
-    "cumulative_weight FLOAT NOT NULL DEFAULT 0.0"
+    "cumulative_weight FLOAT NOT NULL DEFAULT 0.0",
 };
 
 /** ConVar handles **/
@@ -132,7 +133,7 @@ public float DefaultReportWeight(int client, int victim) {
  *                     *
  ***********************/
 
-public Plugin:myinfo = {
+public Plugin myinfo = {
     name = "Smart player reports",
     author = "splewis",
     description = "Enhanced tools for player reports",
@@ -261,18 +262,18 @@ public int Native_HasReportInfo(Handle plugin, int numParams) {
 
 public int Native_GetReputation(Handle plugin, int numParams) {
     int client = GetNativeCell(1);
-    return _:g_Reputation[client];
+    return view_as<int>(g_Reputation[client]);
 }
 
 public int Native_SetReputation(Handle plugin, int numParams) {
     int client = GetNativeCell(1);
-    float reputation = Float:GetNativeCell(2);
+    float reputation = view_as<float>(GetNativeCell(2));
     g_Reputation[client] = reputation;
 }
 
 public int Native_ChangeReputation(Handle plugin, int numParams) {
     int client = GetNativeCell(1);
-    float delta = Float:GetNativeCell(2);
+    float delta = view_as<float>(GetNativeCell(2));
     g_Reputation[client] += delta;
 }
 
