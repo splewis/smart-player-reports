@@ -1,28 +1,37 @@
-language: c
+sudo: false
 
-install:
-    - sudo apt-get update
-    - sudo apt-get install -y gcc-multilib lynx git lib32stdc++6
-    - git clone https://github.com/splewis/sm-builder
-    - cd sm-builder
-    - sudo pip install -r requirements.txt
-    - sudo python setup.py install
-    - cd ..
+addons:
+    apt_packages:
+        - lib32stdc++6  # needed for spcomp
+
+env:
+    - SMVERSION=1.7
 
 before_script:
-    - SMPATTERN="http:.*sourcemod-.*-linux.*"
-    - SMURL="http://www.sourcemod.net/smdrop/1.7/"
-    - SMPACKAGE=`lynx -dump "$SMURL" | egrep -o "$SMPATTERN" | tail -1`
+    # install smbuilder
+    - git clone https://github.com/splewis/sm-builder
+    - cd sm-builder
+    - pip install --user -r requirements.txt
+    - python setup.py install --prefix=~/.local
+    - cd ..
+
+    # install the sourcemod compiler
+    - SMPACKAGE="http://sourcemod.net/latest.php?os=linux&version=${SMVERSION}"
     - wget $SMPACKAGE
-    - tar -xzf $(basename "$SMPACKAGE")
+    - tar xfz $(basename $SMPACKAGE)
     - cd addons/sourcemod/scripting/
     - chmod +x spcomp
     - PATH+=":$PWD"
+
+    # install smlib and messagebot include
     - cd include
+    - wget https://raw.githubusercontent.com/popoklopsi/MessageBot/master/messagebot.inc
     - git clone https://github.com/bcserv/smlib
     - cp -r smlib/scripting/include/* .
-    - wget https://raw.githubusercontent.com/popoklopsi/MessageBot/master/messagebot.inc
     - cd ../../../..
 
 script:
-    - smbuilder
+    - smbuilder --flags="-E"
+
+notifications:
+    email: false
