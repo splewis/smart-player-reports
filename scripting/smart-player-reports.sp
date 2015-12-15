@@ -31,6 +31,7 @@ char g_ReportFields[][] = {
     "description varchar(256) NOT NULL DEFAULT ''",
     "server varchar(72) NOT NULL DEFAULT ''",
     "demo varchar(128) NOT NULL DEFAULT ''",
+    "metadata varchar(128) NOT NULL DEFAULT ''",
     "PRIMARY KEY (id)",
 };
 
@@ -172,7 +173,7 @@ public void OnPluginStart() {
     HookEvent("round_poststart", Event_OnRoundPostStart);
 
     /** Forwards **/
-    g_hOnReportFiled = CreateGlobalForward("SPR_OnReportFiled", ET_Ignore, Param_Cell, Param_Cell, Param_Float, Param_String);
+    g_hOnReportFiled = CreateGlobalForward("SPR_OnReportFiled", ET_Ignore, Param_Cell, Param_Cell, Param_Float, Param_String, Param_String, Param_Cell);
     g_hOnDemoStart = CreateGlobalForward("SPR_OnDemoStart", ET_Ignore, Param_Cell, Param_String, Param_String, Param_String, Param_String);
     g_hOnDemoStop = CreateGlobalForward("SPR_OnDemoStop", ET_Ignore, Param_Cell, Param_String, Param_String, Param_String, Param_String);
 
@@ -432,11 +433,15 @@ public void ReportWithWeight(int reporter, int victim, const char[] reason, floa
     if (weight < 0.0)
         return;
 
+    char metadata[128];
+
     Call_StartForward(g_hOnReportFiled);
     Call_PushCell(reporter);
     Call_PushCell(victim);
     Call_PushFloat(weight);
     Call_PushString(reason);
+    Call_PushString(metadata);
+    Call_PushCell(sizeof(metadata));
     Call_Finish();
 
     if (reporter > 0) {
@@ -511,11 +516,11 @@ public void ReportWithWeight(int reporter, int victim, const char[] reason, floa
         SQL_EscapeString(db, reason, reason_sanitized, sizeof(reason_sanitized));
 
         char buffer[2048];
-        Format(buffer, sizeof(buffer), "INSERT IGNORE INTO %s (reporter_steamid,victim_name,victim_steamid,weight,server,description,demo) VALUES ('%s', '%s', '%s', %f, '%s', '%s', '%s');",
+        Format(buffer, sizeof(buffer), "INSERT IGNORE INTO %s (reporter_steamid,victim_name,victim_steamid,weight,server,description,demo,metadata) VALUES ('%s', '%s', '%s', %f, '%s', '%s', '%s', '%s');",
             REPORTS_TABLE_NAME,
             g_steamid[reporter],
             victim_name_sanitized, g_steamid[victim],
-            weight, server, reason_sanitized, g_DemoName);
+            weight, server, reason_sanitized, g_DemoName, metadata);
         SQL_TQuery(db, SQLErrorCheckCallback, buffer);
     }
 }
@@ -553,6 +558,7 @@ public void DB_Connect() {
     } else {
         SQL_LockDatabase(db);
         SQL_CreateTable(db, REPORTS_TABLE_NAME, g_ReportFields, sizeof(g_ReportFields));
+        SQL_AddColumn(db, REPORTS_TABLE_NAME, g_ReportFields[9]);
         SQL_CreateTable(db, PLAYERS_TABLE_NAME, g_PlayerFields, sizeof(g_PlayerFields));
         SQL_UnlockDatabase(db);
         g_dbConnected = true;

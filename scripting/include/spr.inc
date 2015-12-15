@@ -10,7 +10,7 @@
 forward float ReportWeight(int client, int victim);
 
 // Called whenever a non-negative weight report is filed.
-forward void SPR_OnReportFiled(int reporter, int victim, float weight, const char[] reason);
+forward void SPR_OnReportFiled(int reporter, int victim, float weight, const char[] reason, char[] metadata, int metadataLength);
 
 // Called whenever a demo starts recording.
 forward void SPR_OnDemoStart(int victim, const char[] victim_name, const char[] victim_steamid, const char[] reason, const char[] demo_name);

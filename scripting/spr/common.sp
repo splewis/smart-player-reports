@@ -98,3 +98,15 @@ stock void SQL_CreateTable(Handle db_connection, const char[] table_name, const 
         LogError(err);
     }
 }
+
+stock void SQL_AddColumn(Handle db_connection, const char[] table_name, const char[] column_info) {
+    char buffer[1024];
+    Format(buffer, sizeof(buffer), "ALTER TABLE %s ADD COLUMN %s", table_name, column_info);
+    if (!SQL_FastQuery(db_connection, buffer)) {
+        char err[255];
+        SQL_GetError(db_connection, err, sizeof(err));
+        if (StrContains(err, "Duplicate column name", false) == -1) {
+            LogError(err);
+        }
+    }
+}
