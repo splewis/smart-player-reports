@@ -168,6 +168,7 @@ public void OnPluginStart() {
     AddCommandListener(Command_Say, "say2");
     AddCommandListener(Command_Say, "say_team");
     RegConsoleCmd("sm_report", Command_Report);
+    RegAdminCmd("sm_testreport", Command_TestReport, ADMFLAG_ROOT);
 
     /** Event Hooks **/
     HookEvent("round_poststart", Event_OnRoundPostStart);
@@ -365,6 +366,11 @@ public Action Command_Report(int client, int args) {
     } else {
         ReportPlayerMenu(client);
     }
+}
+
+public Action Command_TestReport(int client, int args) {
+    ReportWithWeight(0, client, "test report", GetConVarFloat(g_hWeightToDemo), false);
+    ReplyToCommand(client, "Submitted test report for %N", client);
 }
 
 public void ReportPlayerMenu(int client) {
