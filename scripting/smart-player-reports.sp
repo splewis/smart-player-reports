@@ -71,6 +71,7 @@ char g_DemoVictimSteamID[32] = "";
 char g_DemoVictimName[32] = "";
 bool g_Recording = false;
 bool g_StopRecordingSignal = false;
+char g_ReportMetadata[128];
 
 char g_steamid[MAXPLAYERS+1][32];
 bool g_FetchedData[MAXPLAYERS+1];
@@ -174,7 +175,7 @@ public void OnPluginStart() {
     HookEvent("round_poststart", Event_OnRoundPostStart);
 
     /** Forwards **/
-    g_hOnReportFiled = CreateGlobalForward("SPR_OnReportFiled", ET_Ignore, Param_Cell, Param_Cell, Param_Float, Param_String, Param_String, Param_Cell);
+    g_hOnReportFiled = CreateGlobalForward("SPR_OnReportFiled", ET_Ignore, Param_Cell, Param_Cell, Param_Float, Param_String);
     g_hOnDemoStart = CreateGlobalForward("SPR_OnDemoStart", ET_Ignore, Param_Cell, Param_String, Param_String, Param_String, Param_String);
     g_hOnDemoStop = CreateGlobalForward("SPR_OnDemoStop", ET_Ignore, Param_Cell, Param_String, Param_String, Param_String, Param_String);
 
@@ -242,6 +243,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
     CreateNative("SPR_SetReputation", Native_SetReputation);
     CreateNative("SPR_ChangeReputation", Native_ChangeReputation);
     CreateNative("SPR_RecordingTarget", Native_RecordingTarget);
+    CreateNative("SPR_SetReportMetadata", Native_SetReportMetadata);
     RegPluginLibrary("smart-player-reports");
     return APLRes_Success;
 }
@@ -281,6 +283,10 @@ public int Native_ChangeReputation(Handle plugin, int numParams) {
 
 public int Native_RecordingTarget(Handle plugin, int numParams) {
     return g_DemoVictim;
+}
+
+public int Native_SetReportMetadata(Handle plugin, int numParams) {
+    GetNativeString(1, g_ReportMetadata, sizeof(g_ReportMetadata));
 }
 
 
@@ -446,8 +452,6 @@ public void ReportWithWeight(int reporter, int victim, const char[] reason, floa
     Call_PushCell(victim);
     Call_PushFloat(weight);
     Call_PushString(reason);
-    Call_PushString(metadata);
-    Call_PushCell(sizeof(metadata));
     Call_Finish();
 
     if (reporter > 0) {
