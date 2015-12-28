@@ -445,8 +445,6 @@ public void ReportWithWeight(int reporter, int victim, const char[] reason, floa
     if (weight < 0.0)
         return;
 
-    char metadata[128];
-
     Call_StartForward(g_hOnReportFiled);
     Call_PushCell(reporter);
     Call_PushCell(victim);
@@ -530,7 +528,7 @@ public void ReportWithWeight(int reporter, int victim, const char[] reason, floa
             REPORTS_TABLE_NAME,
             g_steamid[reporter],
             victim_name_sanitized, g_steamid[victim],
-            weight, server, reason_sanitized, g_DemoName, metadata);
+            weight, server, reason_sanitized, g_DemoName, g_ReportMetadata);
         SQL_TQuery(db, SQLErrorCheckCallback, buffer);
     }
 }
