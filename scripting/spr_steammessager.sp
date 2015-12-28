@@ -29,7 +29,6 @@ public void SPR_OnDemoStart(int victim, const char[] victim_name, const char[] v
     char msg[4196];
     Format(msg, sizeof(msg), "You have a new report to review: (%s, %s) on %s, recorded to %s. Reason: %s",
            victim_name, victim_steamid, hostname, demo_name, reason);
-    MessageBot_SetSendMethod(SEND_METHOD_ONLINEAPI);
     MessageBot_SetLoginData(g_BotUser, g_BotPassword);
     MessageBot_SendMessage(Message_CallBack, msg);
 }
