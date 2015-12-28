@@ -49,5 +49,6 @@ public __pl_spr_SetNTVOptional() {
     MarkNativeAsOptional("SPR_SetReputation");
     MarkNativeAsOptional("SPR_ChangeReputation");
     MarkNativeAsOptional("SPR_RecordingTarget");
+    MarkNativeAsOptional("SPR_SetReportMetadata");
 }
 #endif
