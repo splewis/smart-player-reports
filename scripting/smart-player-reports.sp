@@ -161,7 +161,7 @@ public void OnPluginStart() {
     AutoExecConfig(true, "smart-player-reports");
 
     /** Version cvar **/
-    g_hVersion = CreateConVar("sm_smart_player_reports_version", PLUGIN_VERSION, "Current smart player reports version", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY|FCVAR_DONTRECORD);
+    g_hVersion = CreateConVar("sm_smart_player_reports_version", PLUGIN_VERSION, "Current smart player reports version", FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY|FCVAR_DONTRECORD);
     SetConVarString(g_hVersion, PLUGIN_VERSION);
 
     /** Commands **/
