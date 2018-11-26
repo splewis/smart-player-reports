@@ -33,11 +33,11 @@ public void SPR_OnDemoStart(int victim, const char[] victim_name, const char[] v
     MessageBot_SendMessage(Message_CallBack, msg);
 }
 
-public int Message_CallBack(MessageBotResult result, int error) {
+public void Message_CallBack(MessageBotResult result, const char[] error) {
     if (result != RESULT_NO_ERROR) {
         LogError("MessageBot got an error when using bot user: %s", g_BotUser);
         LogError("result code = %d", result);
-        LogError("error code = %d", error);
+        LogError("error = %s", error);
     }
 }
 
